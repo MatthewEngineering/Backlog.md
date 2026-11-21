@@ -34,6 +34,7 @@ export type TaskCreateArgs = {
 	ordinal?: number;
 	status?: string;
 	dueDate?: string;
+	storyPoints?: number;
 	milestone?: string;
 	parentTaskId?: string;
 	acceptanceCriteria?: string[];
@@ -132,6 +133,7 @@ export class TaskHandlers {
 				title: args.title,
 				description: args.description,
 				dueDate: args.dueDate,
+				storyPoints: args.storyPoints,
 				status: args.status,
 				priority: args.priority,
 				type: args.type,

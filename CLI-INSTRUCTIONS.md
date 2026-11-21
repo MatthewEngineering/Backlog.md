@@ -48,6 +48,7 @@ Humans and agents can run `backlog instructions` for workflow guides and `backlo
 | Create with labels | `backlog task create "Feature" -l auth,backend`     |
 | Create with priority | `backlog task create "Feature" --priority high`     |
 | Create with due date | `backlog task create "Feature" --due-date 2026-08-10` |
+| Create with story points | `backlog task create "Feature" --points 3` |
 | Create with plan | `backlog task create "Feature" --plan "1. Research\n2. Implement"`     |
 | Create with AC | `backlog task create "Feature" --ac "Must work,Must be tested"` |
 | Add DoD items on create | `backlog task create "Feature" --dod "Run tests"` |
@@ -95,6 +96,8 @@ Humans and agents can run `backlog instructions` for workflow guides and `backlo
 | Add deps    | `backlog task edit 7 --dep task-1 --dep task-2`     |
 | Set due date | `backlog task edit 7 --due-date 2026-08-10` |
 | Clear due date | `backlog task edit 7 --clear-due-date` |
+| Set story points | `backlog task edit 7 --points 5` |
+| Clear story points | `backlog task edit 7 --clear-points` |
 | Archive     | `backlog task archive 7` (move a task in any status off the board) |
 | Restore     | `backlog task restore 7` (move an archived task back to the board) |
 | Delete      | `backlog task delete 7` (permanently remove an archived task and release its ID once no other branch or worktree still holds the task) |
@@ -162,7 +165,7 @@ Each successful response is one pretty-printed JSON document followed by a newli
 | `decision list --json` | `{ "schemaVersion": 1, "kind": "decision-list", "decisions": [...] }` |
 | `search [query] --json` | `{ "schemaVersion": 1, "kind": "search", "results": [...] }` |
 
-Task list and task search results use these compact fields: `id`, `title`, `status`, `archived`, `type`, `priority`, `project`, `assignees`, `reporter`, `labels`, `milestone`, `parentTaskId`, `acceptanceCriteriaCompleted`, `acceptanceCriteriaCount`, `dependencies`, `references`, `modifiedFiles`, `ordinal`, `createdAt`, `updatedAt`, `dueDate`, and `isReady`. `archived` is `true` for a task in the archive, which is read-only, and `false` for a task on the board. `acceptanceCriteriaCompleted` is the number of checked acceptance criteria and `acceptanceCriteriaCount` is the total; both are `0` when the task has no acceptance criteria. `dependencies` contains the stored direct dependency IDs, or `[]` when none are recorded. `project` reports the task's `project:` frontmatter and is `null` when the task has none. Setting or filtering by it requires a `projects:` list in the project config. `isReady` is derived from the whole visible corpus at read time and never stored: it is `true` when the task is unfinished and every dependency it names resolved to a completed task, and `false` for a finished task or one whose dependencies are unfinished, unknown, or ambiguous. It is the same verdict `task list --ready` filters on. Draft list entries carry the same fields without `isReady`, because readiness is computed against tasks only.
+Task list and task search results use these compact fields: `id`, `title`, `status`, `archived`, `type`, `priority`, `project`, `storyPoints`, `assignees`, `reporter`, `labels`, `milestone`, `parentTaskId`, `acceptanceCriteriaCompleted`, `acceptanceCriteriaCount`, `dependencies`, `references`, `modifiedFiles`, `ordinal`, `createdAt`, `updatedAt`, `dueDate`, and `isReady`. `archived` is `true` for a task in the archive, which is read-only, and `false` for a task on the board. `acceptanceCriteriaCompleted` is the number of checked acceptance criteria and `acceptanceCriteriaCount` is the total; both are `0` when the task has no acceptance criteria. `dependencies` contains the stored direct dependency IDs, or `[]` when none are recorded. `project` reports the task's `project:` frontmatter and is `null` when the task has none. `storyPoints` reports the task's `story_points:` frontmatter as a number and is `null` when the task has none. Setting or filtering by it requires a `projects:` list in the project config. `isReady` is derived from the whole visible corpus at read time and never stored: it is `true` when the task is unfinished and every dependency it names resolved to a completed task, and `false` for a finished task or one whose dependencies are unfinished, unknown, or ambiguous. It is the same verdict `task list --ready` filters on. Draft list entries carry the same fields without `isReady`, because readiness is computed against tasks only.
 
 Task view includes the same progress counts and `archived` alongside the full checklist and adds `path`, `description`, `dependencyGraph`, `readiness`, `references`, `documentation`, `modifiedFiles`, `subtasks`, `acceptanceCriteria`, `definitionOfDone`, `implementationPlan`, `implementationNotes`, `comments`, and `finalSummary`. `path` is relative to the project root. Checklist entries contain `index`, `text`, and `checked`. Comment entries contain `index`, `body`, `createdAt`, and `author`.
 

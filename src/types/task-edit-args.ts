@@ -1,6 +1,8 @@
 export interface TaskEditArgs {
 	title?: string;
 	dueDate?: string | null;
+	/** String from the CLI, number from MCP; null clears. Validated by core. */
+	storyPoints?: string | number | null;
 	description?: string;
 	status?: string;
 	priority?: string;

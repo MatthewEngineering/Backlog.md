@@ -13,6 +13,7 @@ For getting started and the interactive wizard overview, see [README.md](README.
 | Bypass git hooks | `backlog config set bypassGitHooks true` |
 | Enable cross-branch check | `backlog config set checkActiveBranches true` |
 | Set active branch days | `backlog config set activeBranchDays 30` |
+| Set team monthly capacity | `backlog config set pointsPerMonth 40` |
 | Set default assignees | `backlog config set defaultAssignee "@alice,@bob"` |
 
 Running `backlog config` with no arguments launches the interactive advanced wizard, including guided Definition of Done defaults editing (add/remove/reorder/clear).
@@ -38,6 +39,7 @@ Running `backlog config` with no arguments launches the interactive advanced wiz
 | `zeroPaddedIds`   | Pad all IDs (tasks, docs, etc.) with leading zeros | `(disabled)`  |
 | `checkActiveBranches` | Check task states across active branches for accuracy | `true` |
 | `activeBranchDays` | How many days a branch is considered active | `30` |
+| `pointsPerMonth`  | Story points the team completes in a standard month; months planned above it are flagged in the browser Gantt and calendar (0 turns it off) | `(disabled)` |
 | `onStatusChange`  | Shell command to run on status change | `(disabled)` |
 | `backlog_directory` | Project-relative backlog folder, chosen at `backlog init` and read from `backlog.config.yml` in the project root | `backlog` |
 

@@ -1,4 +1,5 @@
-import { Outlet } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import SideNavigation from './SideNavigation';
 import Navigation from './Navigation';
 import { HealthIndicator, HealthSuccessToast } from './HealthIndicator';
@@ -33,20 +34,42 @@ export default function Layout({
 	onRefreshData,
 	duplicateRepairPlan = null,
 }: LayoutProps) {
+	// Below the md breakpoint the side navigation is a drawer over the page instead of a column.
+	const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+	const { pathname } = useLocation();
+	useEffect(() => setIsMobileNavOpen(false), [pathname]);
+
 	return (
-		<div className="h-screen bg-gray-50 dark:bg-gray-900 flex overflow-hidden transition-colors duration-200">
+		<div className="h-dvh bg-gray-50 dark:bg-gray-900 flex overflow-hidden transition-colors duration-200">
 			<HealthIndicator />
-			<SideNavigation 
-				taskCount={tasks.length}
-				docs={docs}
-				decisions={decisions}
-				isLoading={isLoading}
-				error={error}
-				onRetry={onRefreshData}
-				onRefreshData={onRefreshData}
-			/>
+			<div
+				className={`fixed inset-y-0 left-0 z-50 flex transition-transform duration-200 md:static md:z-auto md:translate-x-0 ${
+					isMobileNavOpen ? 'translate-x-0' : '-translate-x-full'
+				}`}
+			>
+				<SideNavigation
+					taskCount={tasks.length}
+					docs={docs}
+					decisions={decisions}
+					isLoading={isLoading}
+					error={error}
+					onRetry={onRefreshData}
+					onRefreshData={onRefreshData}
+				/>
+			</div>
+			{isMobileNavOpen && (
+				<div
+					aria-hidden="true"
+					className="fixed inset-0 z-40 bg-black/40 md:hidden"
+					onClick={() => setIsMobileNavOpen(false)}
+				/>
+			)}
 			<div className="flex-1 flex flex-col min-h-0 min-w-0">
-				<Navigation projectName={projectName} loadingMessage={loadingMessage} />
+				<Navigation
+					projectName={projectName}
+					loadingMessage={loadingMessage}
+					onOpenMobileNav={() => setIsMobileNavOpen(true)}
+				/>
 				<DuplicateIdWarning plan={duplicateRepairPlan} onRepaired={onRefreshData} />
 				<main className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden">
 					<Outlet context={{ tasks, docs, decisions, isLoading, onRefreshData }} />

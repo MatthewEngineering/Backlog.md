@@ -1,6 +1,7 @@
 import type { AcceptanceCriterion, Decision, Document, Milestone, ParsedMarkdown, Task } from "../types/index.ts";
 import { normalizeDueDate } from "../utils/due-date.ts";
 import { normalizePriorityValue } from "../utils/priority-config.ts";
+import { readStoredStoryPoints } from "../utils/story-points.ts";
 import { getTaskRevision } from "../utils/task-revision.ts";
 import { normalizeYamlOpeningLine, parseFrontmatter, preprocessFrontmatter } from "./frontmatter.ts";
 import {
@@ -128,6 +129,7 @@ export function parseTask(content: string): Task {
 		parentTaskId: frontmatter.parent_task_id ? String(frontmatter.parent_task_id) : undefined,
 		subtasks: Array.isArray(frontmatter.subtasks) ? frontmatter.subtasks.map(String) : undefined,
 		priority,
+		storyPoints: readStoredStoryPoints(frontmatter.story_points),
 		type: frontmatter.type ? String(frontmatter.type) : undefined,
 		project: frontmatter.project ? String(frontmatter.project) : undefined,
 		ordinal: frontmatter.ordinal !== undefined ? Number(frontmatter.ordinal) : undefined,

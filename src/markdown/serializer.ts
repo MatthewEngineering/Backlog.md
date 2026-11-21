@@ -71,6 +71,7 @@ export function serializeTask(task: Task, originalContent = ""): string {
 		parent_task_id: task.parentTaskId || undefined,
 		subtasks: task.subtasks?.length ? task.subtasks : undefined,
 		priority: task.priority || undefined,
+		story_points: task.storyPoints,
 		type: task.type || undefined,
 		project: task.project || undefined,
 		ordinal: task.ordinal,

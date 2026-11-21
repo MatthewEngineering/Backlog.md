@@ -1,6 +1,7 @@
 import type { TaskUpdateInput } from "../types/index.ts";
 import type { TaskEditArgs } from "../types/task-edit-args.ts";
 import { normalizeAcceptanceCriterionText } from "./acceptance-criteria.ts";
+import { normalizeStoryPoints } from "./story-points.ts";
 import { normalizeStringList } from "./task-builders.ts";
 
 function sanitizeStringArray(values: string[] | undefined): string[] | undefined {
@@ -44,6 +45,13 @@ export function buildTaskUpdateInput(args: TaskEditArgs): TaskUpdateInput {
 		updateInput.dueDate = null;
 	} else if (typeof args.dueDate === "string") {
 		updateInput.dueDate = args.dueDate.trim().length > 0 ? args.dueDate : null;
+	}
+
+	if (args.storyPoints === null) {
+		updateInput.storyPoints = null;
+	} else if (args.storyPoints !== undefined) {
+		const points = normalizeStoryPoints(args.storyPoints);
+		updateInput.storyPoints = points === undefined ? null : points;
 	}
 
 	if (typeof args.description === "string") {

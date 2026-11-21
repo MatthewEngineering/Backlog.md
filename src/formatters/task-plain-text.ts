@@ -109,6 +109,9 @@ export function formatTaskPlainText(task: TaskDetail, options: TaskPlainTextOpti
 	if (task.project) {
 		lines.push(`Project: ${task.project}`);
 	}
+	if (task.storyPoints !== undefined) {
+		lines.push(`Story points: ${task.storyPoints}`);
+	}
 	if (task.ordinal !== undefined) {
 		lines.push(`Ordinal: ${task.ordinal}`);
 	}

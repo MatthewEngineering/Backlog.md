@@ -46,10 +46,11 @@ interface Props {
 
 type Mode = "preview" | "edit" | "create";
 
-type TaskUpdatePayload = Omit<Partial<Task>, "dueDate" | "project" | "milestone"> & {
+type TaskUpdatePayload = Omit<Partial<Task>, "dueDate" | "project" | "milestone" | "storyPoints"> & {
   expectedRevision?: string;
   milestone?: string | null;
 	dueDate?: string | null;
+  storyPoints?: number | null;
   project?: string | null;
   definitionOfDoneAdd?: string[];
   definitionOfDoneRemove?: number[];
@@ -84,6 +85,7 @@ type TaskDetailsFormState = {
   modifiedFiles: string[];
   milestone: string;
   dueDate: string;
+  storyPoints: string;
 };
 
 // Shared empty defaults. A `= []` default parameter allocates a fresh array on every render, so
@@ -146,6 +148,7 @@ const buildTaskDetailsFormState = ({
   modifiedFiles: task?.modifiedFiles || [],
   milestone: task?.milestone || "",
   dueDate: task?.dueDate || "",
+  storyPoints: task?.storyPoints === undefined ? "" : String(task.storyPoints),
 });
 
 const SectionHeader: React.FC<{ title: string; right?: React.ReactNode }> = ({ title, right }) => (
@@ -415,6 +418,7 @@ export const TaskDetailsModal: React.FC<Props> = ({
   const [modifiedFiles, setModifiedFiles] = useState<string[]>(task?.modifiedFiles || []);
   const [milestone, setMilestone] = useState<string>(task?.milestone || "");
   const [dueDate, setDueDate] = useState<string>(task?.dueDate || "");
+  const [storyPoints, setStoryPoints] = useState<string>(task?.storyPoints === undefined ? "" : String(task.storyPoints));
   const canonicalTypeSelection = resolveTaskTypeValue(taskType, typeOptions);
   const typeSelectionValue = canonicalTypeSelection ?? taskType;
   const canonicalProjectSelection = resolveProjectValue(project, projectOptions);
@@ -488,6 +492,7 @@ export const TaskDetailsModal: React.FC<Props> = ({
     setModifiedFiles(next.modifiedFiles);
     setMilestone(next.milestone);
     setDueDate(next.dueDate);
+    setStoryPoints(next.storyPoints);
     formBaselineRef.current = next;
     formRevisionRef.current = revision;
     setNewVersionAvailable(false);
@@ -538,10 +543,11 @@ export const TaskDetailsModal: React.FC<Props> = ({
       notes !== baseline.notes ||
       finalSummary !== baseline.finalSummary ||
       dueDate !== baseline.dueDate ||
+      storyPoints !== baseline.storyPoints ||
       JSON.stringify(criteria) !== JSON.stringify(baseline.criteria) ||
       JSON.stringify(definitionOfDone) !== JSON.stringify(baseline.definitionOfDone)
     );
-  }, [title, description, plan, notes, finalSummary, dueDate, criteria, definitionOfDone, baseline]);
+  }, [title, description, plan, notes, finalSummary, dueDate, storyPoints, criteria, definitionOfDone, baseline]);
 
   useEffect(() => {
     modeRef.current = mode;
@@ -682,6 +688,9 @@ export const TaskDetailsModal: React.FC<Props> = ({
         preserveDirtyRefreshValue(current, previousFormState.milestone, nextFormState.milestone),
       );
       setDueDate((current) => preserveDirtyRefreshValue(current, previousFormState.dueDate, nextFormState.dueDate));
+      setStoryPoints((current) =>
+        preserveDirtyRefreshValue(current, previousFormState.storyPoints, nextFormState.storyPoints),
+      );
       setMode(isCreateMode ? "create" : modeRef.current);
       previousTaskId.current = nextTaskId;
       previousIsOpen.current = isOpen;
@@ -717,6 +726,7 @@ export const TaskDetailsModal: React.FC<Props> = ({
       project.trim() !== "" ||
       milestone.trim() !== "" ||
       dueDate.trim() !== "" ||
+      storyPoints.trim() !== "" ||
       // The prefilled default is not the user's work, but removing or replacing it is.
       !areJsonEqual(assignee, createModeAssignee) ||
       labels.length > 0 ||
@@ -936,6 +946,8 @@ export const TaskDetailsModal: React.FC<Props> = ({
         dependencies,
         milestone: milestone.trim().length > 0 ? milestone.trim() : undefined,
         dueDate: dueDate.trim().length > 0 ? dueDate.trim() : isCreateMode ? undefined : null,
+        // The server validates the number and reports an invalid value as a save error.
+        storyPoints: storyPoints.trim().length > 0 ? Number(storyPoints.trim()) : isCreateMode ? undefined : null,
       };
 
       // Like type, project is only sent from the create form. On edit the sidebar select
@@ -1850,6 +1862,9 @@ export const TaskDetailsModal: React.FC<Props> = ({
 	              {task.dueDate && mode === "preview" && (
 	                <div><span className="font-semibold text-gray-800 dark:text-gray-100">Due:</span> <StoredDate value={task.dueDate} dateFormat={dateFormat} className="text-gray-700 dark:text-gray-200" /></div>
 	              )}
+	              {task.storyPoints !== undefined && mode === "preview" && (
+	                <div><span className="font-semibold text-gray-800 dark:text-gray-100">Story points:</span> <span className="text-gray-700 dark:text-gray-200">{task.storyPoints}</span></div>
+	              )}
 	            </div>
 	          )}
           {mode !== "preview" && (
@@ -1859,6 +1874,21 @@ export const TaskDetailsModal: React.FC<Props> = ({
                 type="date"
                 value={dueDate}
                 onChange={(event) => setDueDate(event.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+              />
+            </div>
+          )}
+          {mode !== "preview" && (
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+              <SectionHeader title="Story points" />
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                aria-label="Story points"
+                value={storyPoints}
+                onChange={(event) => setStoryPoints(event.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
               />
             </div>

@@ -9,6 +9,10 @@ import DraftsList from './components/DraftsList';
 import Settings from './components/Settings';
 import Statistics from './components/Statistics';
 import MilestonesPage from './components/MilestonesPage';
+import CalendarPage from './components/CalendarPage';
+import GanttPage from './components/GanttPage';
+import EisenhowerPage from './components/EisenhowerPage';
+import TerminalPage from './components/TerminalPage';
 import TaskDetailsModal from './components/TaskDetailsModal';
 import InitializationScreen from './components/InitializationScreen';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -1057,6 +1061,12 @@ function AppContent() {
             <Route path="decisions/:id/:title" element={<DecisionDetail decisions={decisions} onRefreshData={refreshData} dateFormat={config?.dateFormat} />} />
             <Route path="statistics" element={<Statistics statuses={statuses} tasks={tasks} isLoading={isLoading} onEditTask={handleEditTask} projectName={projectName} dateFormat={config?.dateFormat} />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="calendar" element={<CalendarPage view="month" tasks={kanbanTasks} statuses={statuses} milestones={milestoneEntities} pointsPerMonth={config?.pointsPerMonth} onEditTask={handleEditTask} />} />
+            <Route path="calendar/week" element={<CalendarPage view="week" tasks={kanbanTasks} statuses={statuses} milestones={milestoneEntities} pointsPerMonth={config?.pointsPerMonth} onEditTask={handleEditTask} />} />
+            <Route path="calendar/week-eisenhower" element={<CalendarPage view="week-eisenhower" tasks={kanbanTasks} statuses={statuses} milestones={milestoneEntities} pointsPerMonth={config?.pointsPerMonth} onEditTask={handleEditTask} />} />
+            <Route path="gantt" element={<GanttPage tasks={kanbanTasks} statuses={statuses} milestones={milestoneEntities} pointsPerMonth={config?.pointsPerMonth} />} />
+            <Route path="eisenhower" element={<EisenhowerPage tasks={kanbanTasks} statuses={statuses} onEditTask={handleEditTask} />} />
+            <Route path="terminal" element={<TerminalPage />} />
           </Route>
       </Routes>
 

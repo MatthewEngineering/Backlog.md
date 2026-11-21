@@ -1,6 +1,7 @@
 import type { DuplicateRepairPlan, DuplicateRepairResult } from "../../core/duplicate-task-repair.ts";
 import type { TaskStatistics } from "../../core/statistics.ts";
 import type { TaskDetail } from "../../core/task-detail.ts";
+import type { TerminalAvailability } from "../../server/terminal.ts";
 import type {
 	BacklogConfig,
 	Decision,
@@ -72,10 +73,12 @@ export interface TaskVacancyResponse {
 	cleanedTaskIds: string[];
 }
 
-export type TaskUpdateRequest = Omit<Partial<Task>, "milestone" | "dueDate" | "project"> & {
+export type TaskUpdateRequest = Omit<Partial<Task>, "milestone" | "dueDate" | "project" | "storyPoints"> & {
 	expectedRevision?: string;
 	milestone?: string | null;
 	dueDate?: string | null;
+	/** null clears the story points. */
+	storyPoints?: number | null;
 	project?: string | null;
 	commentsAppend?: string[];
 	commentAuthor?: string;
@@ -664,6 +667,10 @@ export class ApiClient {
 		return this.fetchJson<
 			TaskStatistics & { statusCounts: Record<string, number>; priorityCounts: Record<string, number> }
 		>(`${API_BASE}/statistics`);
+	}
+
+	async fetchTerminalStatus(): Promise<TerminalAvailability> {
+		return this.fetchJson<TerminalAvailability>(`${API_BASE}/terminal/status`);
 	}
 
 	async checkStatus(): Promise<InitializationStatus> {

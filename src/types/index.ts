@@ -73,6 +73,8 @@ export interface Task {
 	subtasks?: string[];
 	subtaskSummaries?: Array<{ id: string; title: string }>;
 	priority?: string;
+	/** Estimated size in story points (non-negative). Stored as `story_points`. */
+	storyPoints?: number;
 	/** Semantic task type (e.g. bug, feature). Allowed values come from config `types` (defaults to DEFAULT_TASK_TYPES); absent means untyped. */
 	type?: string;
 	/** Monorepo project/component this task belongs to. Allowed values come from config `projects`; absent config means the field is unusable. */
@@ -100,6 +102,10 @@ export interface MilestoneBucket {
 	total: number;
 	doneCount: number;
 	progress: number;
+	/** Sum of the story points of the bucket's tasks; tasks without points count as 0. */
+	totalPoints: number;
+	/** Story points of the bucket's tasks in the terminal status. */
+	donePoints: number;
 }
 
 export interface MilestoneSummary {
@@ -130,6 +136,7 @@ export interface TaskCreateInput {
 	description?: string;
 	status?: TaskStatus;
 	priority?: string;
+	storyPoints?: number;
 	type?: string;
 	project?: string;
 	ordinal?: number;
@@ -157,6 +164,8 @@ export interface TaskUpdateInput {
 	description?: string;
 	status?: TaskStatus;
 	priority?: string;
+	/** null clears the story points. */
+	storyPoints?: number | null;
 	type?: string;
 	project?: string | null;
 	milestone?: string | null;
@@ -419,6 +428,8 @@ export interface BacklogConfig {
 	bypassGitHooks?: boolean;
 	checkActiveBranches?: boolean; // Check task states across active branches (default: true)
 	activeBranchDays?: number; // How many days a branch is considered active (default: 30)
+	/** Story points the team completes in a standard month. Months planned above it get a warning. Unset means no capacity check. */
+	pointsPerMonth?: number;
 	/** Project-relative backlog folder when config is stored at project root in backlog.config.yml. */
 	backlogDirectory?: string;
 	/** Global callback command to run on any task status change. Supports $TASK_ID, $OLD_STATUS, $NEW_STATUS, $TASK_TITLE variables. */

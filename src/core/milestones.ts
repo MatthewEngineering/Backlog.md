@@ -262,14 +262,28 @@ export function summarizeMilestoneTasks(tasks: Task[], statuses: string[]) {
 	const statusCounts: Record<string, number> = Object.fromEntries(statuses.map((status) => [status, 0]));
 	const resolveStatus = createStatusResolver(statuses);
 	let doneCount = 0;
+	let totalPoints = 0;
+	let donePoints = 0;
 	for (const task of tasks) {
 		const status = resolveStatus(task.status ?? "");
 		statusCounts[status] = (statusCounts[status] ?? 0) + 1;
-		if (isTerminalStatus(status, statuses)) doneCount++;
+		const points = task.storyPoints ?? 0;
+		totalPoints += points;
+		if (isTerminalStatus(status, statuses)) {
+			doneCount++;
+			donePoints += points;
+		}
 	}
 
 	const total = tasks.length;
-	return { statusCounts, total, doneCount, progress: total > 0 ? Math.round((doneCount / total) * 100) : 0 };
+	return {
+		statusCounts,
+		total,
+		doneCount,
+		progress: total > 0 ? Math.round((doneCount / total) * 100) : 0,
+		totalPoints,
+		donePoints,
+	};
 }
 
 /**

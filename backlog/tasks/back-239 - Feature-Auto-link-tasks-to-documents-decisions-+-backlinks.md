@@ -4,7 +4,9 @@ title: 'Feature: Auto-link tasks to documents/decisions + backlinks'
 status: To Do
 assignee:
   - '@codex'
-created_date: '2025-08-17 16:54'
+created_date: '2025-08-17T16:54:00Z'
+updated_date: '2026-11-21T08:59:51Z'
+due_date: '2026-11-22'
 labels:
   - web
   - enhancement

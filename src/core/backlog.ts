@@ -85,6 +85,7 @@ import {
 	getValidStatuses as resolveValidStatuses,
 } from "../utils/status.ts";
 import { executeStatusCallback } from "../utils/status-callback.ts";
+import { normalizeStoryPoints } from "../utils/story-points.ts";
 import {
 	buildDefinitionOfDoneItems,
 	normalizeStringList,
@@ -331,6 +332,7 @@ function buildUpdatedDateComparableTask(task: Task): Record<string, unknown> {
 		parentTaskId: task.parentTaskId,
 		subtasks: task.subtasks ?? [],
 		priority: task.priority,
+		storyPoints: task.storyPoints,
 		type: task.type,
 		project: task.project,
 		onStatusChange: task.onStatusChange,
@@ -2234,6 +2236,7 @@ export class Core {
 		const normalizedDocumentation = normalizeStringList(input.documentation) ?? [];
 		const normalizedModifiedFiles = normalizeStringList(input.modifiedFiles) ?? [];
 		const dueDate = normalizeDueDate(input.dueDate, "Due date");
+		const storyPoints = normalizeStoryPoints(input.storyPoints);
 
 		let status = "";
 		if (requestedStatus) {
@@ -2317,6 +2320,7 @@ export class Core {
 				...(dueDate && { dueDate }),
 				...(parentTaskId && { parentTaskId }),
 				...(priority && { priority }),
+				...(storyPoints !== undefined && { storyPoints }),
 				...(type && { type }),
 				...(project && { project }),
 				...(typeof ordinal === "number" && { ordinal }),
@@ -2522,6 +2526,15 @@ export class Core {
 			if (task.dueDate !== dueDate) {
 				if (dueDate) task.dueDate = dueDate;
 				else delete task.dueDate;
+				mutated = true;
+			}
+		}
+
+		if (input.storyPoints !== undefined) {
+			const storyPoints = input.storyPoints === null ? undefined : normalizeStoryPoints(input.storyPoints);
+			if (task.storyPoints !== storyPoints) {
+				if (storyPoints === undefined) delete task.storyPoints;
+				else task.storyPoints = storyPoints;
 				mutated = true;
 			}
 		}

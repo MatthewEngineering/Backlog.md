@@ -405,6 +405,23 @@ const Settings: React.FC = () => {
 							</div>
 
 							<div>
+								<label htmlFor="pointsPerMonth" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+									Story Points per Month
+								</label>
+								<input
+									id="pointsPerMonth"
+									type="number"
+									min="0"
+									value={config.pointsPerMonth ?? 0}
+									onChange={(e) => handleInputChange('pointsPerMonth', Math.max(0, parseInt(e.target.value) || 0))}
+									className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 transition-colors duration-200"
+								/>
+								<p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+									Team capacity; months planned above it show a warning (0 = off)
+								</p>
+							</div>
+
+							<div>
 								<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 									Task Prefix <span className="text-gray-400 dark:text-gray-500 font-normal">(read-only)</span>
 								</label>

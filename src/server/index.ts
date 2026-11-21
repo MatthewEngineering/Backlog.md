@@ -48,6 +48,17 @@ import { isValidTaskId } from "../utils/task-id.ts";
 import { isAmbiguousTaskIdError, LOCAL_TASK_LOOKUP_HINT, taskNotFoundMessage } from "../utils/task-path.ts";
 import { TaskChangedError } from "../utils/task-revision.ts";
 import { getVersion } from "../utils/version.ts";
+import {
+	closeTerminal,
+	getTerminalAvailability,
+	handleTerminalMessage,
+	isTerminalSocket,
+	openTerminal,
+	TERMINAL_PATH,
+	type TerminalAvailability,
+	type TerminalSocketData,
+	terminalSocketData,
+} from "./terminal.ts";
 
 // Regex pattern to match any prefix (letters followed by dash)
 const PREFIX_PATTERN = /^[a-zA-Z]+-/i;
@@ -279,8 +290,12 @@ export class BacklogServer {
 	private taskBroadcastTimer?: ReturnType<typeof setTimeout>;
 	private pendingDataBroadcastScope: "tasks" | "milestones" = "tasks";
 	private storeReadyBroadcasted = false;
+	private readonly projectPath: string;
+	private terminalSockets = new Set<ServerWebSocket<TerminalSocketData>>();
+	private terminalAvailability: TerminalAvailability = { available: false, reason: "Server not started." };
 
 	constructor(projectPath: string) {
+		this.projectPath = projectPath;
 		this.core = new Core(projectPath, { enableWatchers: true });
 	}
 
@@ -400,7 +415,11 @@ export class BacklogServer {
 		}
 	}
 
-	async start(port?: number, openBrowser = true, hostname?: string): Promise<void> {
+	/**
+	 * @param allowRemoteTerminal Opt-in from `backlog browser --terminal`: keep the browser terminal
+	 * available even when the server listens on a non-loopback address.
+	 */
+	async start(port?: number, openBrowser = true, hostname?: string, allowRemoteTerminal = false): Promise<void> {
 		// Prevent duplicate starts (e.g., accidental re-entry)
 		if (this.server) {
 			console.log("Server already running");
@@ -447,13 +466,24 @@ export class BacklogServer {
 			return undefined;
 		};
 		this.projectName = config?.projectName || "Untitled Project";
+		const listensOnLoopback = isLoopbackBrowserHostname(finalHostname);
+		this.terminalAvailability = getTerminalAvailability(listensOnLoopback, allowRemoteTerminal);
 
 		// Check if browser should open (config setting or CLI override)
 		// Default to true if autoOpenBrowser is not explicitly set to false
 		const shouldOpenBrowser = openBrowser && (config?.autoOpenBrowser ?? true);
 
 		try {
-			if (!isLoopbackBrowserHostname(finalHostname)) {
+			if (!listensOnLoopback && this.terminalAvailability.available) {
+				console.warn(
+					pc.bold(
+						pc.red(
+							"\nWARNING: --terminal is on. Anyone who can reach this address gets a shell as this user, with no login.\n",
+						),
+					),
+				);
+			}
+			if (!listensOnLoopback) {
 				console.warn(
 					pc.bold(
 						pc.red(
@@ -480,6 +510,11 @@ export class BacklogServer {
 					"/decisions/*": spaIndexHtml,
 					"/statistics": spaIndexHtml,
 					"/settings": spaIndexHtml,
+					"/calendar": spaIndexHtml,
+					"/calendar/*": spaIndexHtml,
+					"/gantt": spaIndexHtml,
+					"/eisenhower": spaIndexHtml,
+					"/terminal": spaIndexHtml,
 
 					// API Routes using Bun's native route syntax
 					"/api/tasks": {
@@ -591,6 +626,9 @@ export class BacklogServer {
 					"/api/search": {
 						GET: async (req: Request) => await this.handleSearch(req),
 					},
+					"/api/terminal/status": {
+						GET: async () => Response.json(this.terminalAvailability),
+					},
 					// Serve files placed under backlog/assets at /assets/<relative-path>
 					"/assets/*": {
 						GET: async (req: Request) => await this.handleAssetRequest(req),
@@ -610,17 +648,31 @@ export class BacklogServer {
 				},
 				error: this.handleError.bind(this),
 				websocket: {
-					open: (ws: ServerWebSocket) => {
+					open: (ws: ServerWebSocket<unknown>) => {
+						if (isTerminalSocket(ws)) {
+							this.terminalSockets.add(ws);
+							openTerminal(ws, this.projectPath);
+							return;
+						}
 						this.sockets.add(ws);
 						ws.send(JSON.stringify(this.browserLoadingState));
 						if (this.browserLoadingState.type === "loading") {
 							void this.ensureServicesReady().catch(() => {});
 						}
 					},
-					message(ws: ServerWebSocket) {
+					message(ws: ServerWebSocket<unknown>, message: string | Buffer) {
+						if (isTerminalSocket(ws)) {
+							handleTerminalMessage(ws, message);
+							return;
+						}
 						ws.send("pong");
 					},
-					close: (ws: ServerWebSocket) => {
+					close: (ws: ServerWebSocket<unknown>) => {
+						if (isTerminalSocket(ws)) {
+							this.terminalSockets.delete(ws);
+							closeTerminal(ws);
+							return;
+						}
 						this.sockets.delete(ws);
 					},
 				},
@@ -710,6 +762,13 @@ export class BacklogServer {
 			} catch {}
 		}
 		this.sockets.clear();
+		for (const ws of this.terminalSockets) {
+			closeTerminal(ws);
+			try {
+				ws.close();
+			} catch {}
+		}
+		this.terminalSockets.clear();
 
 		// Attempt to stop the server but don't hang forever
 		if (this.server) {
@@ -787,6 +846,15 @@ export class BacklogServer {
 	private async handleRequest(req: Request, server: Server<unknown>): Promise<Response> {
 		// Handle WebSocket upgrade
 		if (req.headers.get("upgrade") === "websocket") {
+			const url = new URL(req.url);
+			if (url.pathname === TERMINAL_PATH) {
+				if (!this.terminalAvailability.available) {
+					return new Response(this.terminalAvailability.reason, { status: 403 });
+				}
+				return server.upgrade(req, { data: terminalSocketData(url) })
+					? new Response(null, { status: 101 })
+					: new Response("WebSocket upgrade failed", { status: 400 });
+			}
 			const success = server.upgrade(req, { data: undefined });
 			if (success) {
 				return new Response(null, { status: 101 }); // WebSocket upgrade response
@@ -1081,6 +1149,8 @@ export class BacklogServer {
 			const { task: createdTask } = await this.core.createTaskFromInput({
 				title: payload.title,
 				dueDate: dueDate.value ?? undefined,
+				// Core validates the value and rejects anything but a non-negative number.
+				storyPoints: payload.storyPoints ?? undefined,
 				description: payload.description,
 				status: payload.status,
 				priority: payload.priority,
@@ -1186,6 +1256,11 @@ export class BacklogServer {
 
 		if ("dueDate" in updates) {
 			updateInput.dueDate = dueDate.value ?? null;
+		}
+
+		if ("storyPoints" in updates) {
+			// Core validates the number; null (or an empty value) clears it.
+			updateInput.storyPoints = updates.storyPoints === "" ? null : updates.storyPoints;
 		}
 
 		if ("description" in updates && typeof updates.description === "string") {
@@ -1644,6 +1719,7 @@ export class BacklogServer {
 				"hideEmptyColumns",
 				"maxColumnWidth",
 				"zeroPaddedIds",
+				"pointsPerMonth",
 			] as const;
 			for (const field of editableFields) {
 				if (Object.hasOwn(input, field)) {
@@ -1669,6 +1745,9 @@ export class BacklogServer {
 						case "zeroPaddedIds":
 							valid = Number.isInteger(value) && value >= 0;
 							break;
+						case "pointsPerMonth":
+							valid = value === null || (Number.isInteger(value) && value >= 0);
+							break;
 						case "autoCommit":
 						case "remoteOperations":
 						case "autoOpenBrowser":
@@ -1677,7 +1756,9 @@ export class BacklogServer {
 							break;
 					}
 					if (!valid) return Response.json({ error: `Invalid ${field}` }, { status: 400 });
-					(updatedConfig as unknown as Record<string, unknown>)[field] = value;
+					// 0 or null turns the capacity check off, which is stored as the setting being absent.
+					(updatedConfig as unknown as Record<string, unknown>)[field] =
+						field === "pointsPerMonth" && !value ? undefined : value;
 				}
 			}
 

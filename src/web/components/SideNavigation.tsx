@@ -182,6 +182,26 @@ const Icons = {
 			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
 		</svg>
 	),
+	Calendar: () => (
+		<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+		</svg>
+	),
+	Gantt: () => (
+		<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h8M8 12h10M6 18h7" />
+		</svg>
+	),
+	Matrix: () => (
+		<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4h16v16H4zM12 4v16M4 12h16" />
+		</svg>
+	),
+	Terminal: () => (
+		<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+		</svg>
+	),
 	Milestone: () => (
 		<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 			<circle cx="12" cy="12" r="9" strokeWidth={2} />
@@ -190,6 +210,14 @@ const Icons = {
 		</svg>
 	),
 };
+
+// Planning and tool pages, shown after Statistics in both the expanded and collapsed sidebar.
+const PLANNING_LINKS = [
+	{ to: '/calendar', label: 'Calendar', Icon: Icons.Calendar },
+	{ to: '/gantt', label: 'Gantt', Icon: Icons.Gantt },
+	{ to: '/eisenhower', label: 'Eisenhower', Icon: Icons.Matrix },
+	{ to: '/terminal', label: 'Terminal', Icon: Icons.Terminal },
+] as const;
 
 // Shared render path for sidebar document links (search results, folder tree, and flat list).
 const DocLink = ({ doc, depth = 0 }: { doc: Document; depth?: number }) => (
@@ -720,6 +748,23 @@ const SideNavigation = memo(function SideNavigation({
 							<Icons.Statistics />
 							<span className="ml-3 text-sm font-medium">Statistics</span>
 						</NavLink>
+
+						{PLANNING_LINKS.map(({ to, label, Icon }) => (
+							<NavLink
+								key={to}
+								to={to}
+								className={({ isActive }) =>
+									`flex items-center px-3 py-2 rounded-lg transition-colors duration-200 ${
+										isActive
+											? 'bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 font-medium'
+											: 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+									}`
+								}
+							>
+								<Icon />
+								<span className="ml-3 text-sm font-medium">{label}</span>
+							</NavLink>
+						))}
 					</div>
 				)}
 
@@ -942,6 +987,25 @@ const SideNavigation = memo(function SideNavigation({
 								<Icons.Statistics />
 							</div>
 						</NavLink>
+						{PLANNING_LINKS.map(({ to, label, Icon }) => (
+							<NavLink
+								key={to}
+								to={to}
+								data-tooltip-id="sidebar-tooltip"
+								data-tooltip-content={label}
+								className={({ isActive }) =>
+									`flex items-center justify-center p-3 rounded-md transition-colors duration-200 ${
+										isActive
+											? 'bg-blue-50 dark:bg-blue-600/20 text-blue-700 dark:text-blue-400'
+											: 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+									}`
+								}
+							>
+								<div className="w-6 h-6 flex items-center justify-center">
+									<Icon />
+								</div>
+							</NavLink>
+						))}
 						<button
 							onClick={() => {
 								setIsCollapsed(false);

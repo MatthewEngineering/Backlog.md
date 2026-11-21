@@ -156,6 +156,14 @@ function generateDueDateFieldSchema(description: string, clearable = false): Jso
 	};
 }
 
+function generateStoryPointsFieldSchema(description: string, clearable = false): JsonSchema {
+	return {
+		type: clearable ? ["number", "null"] : "number",
+		minimum: 0,
+		description: `${description} A non-negative number sizing the task, such as 1, 3 or 0.5.`,
+	};
+}
+
 /**
  * Generates the task_create input schema with dynamic status enum
  */
@@ -174,6 +182,7 @@ export function generateTaskCreateSchema(config: BacklogConfig): JsonSchema {
 			},
 			status: generateStatusFieldSchema(config),
 			dueDate: generateDueDateFieldSchema("Optional task due date."),
+			storyPoints: generateStoryPointsFieldSchema("Optional story points."),
 			priority: generatePriorityFieldSchema(config),
 			type: generateTypeFieldSchema(config),
 			...(getProjectValues(config).length > 0 ? { project: generateProjectFieldSchema(config) } : {}),
@@ -299,6 +308,7 @@ export function generateTaskEditSchema(config: BacklogConfig): JsonSchema {
 			},
 			status: generateStatusFieldSchema(config),
 			dueDate: generateDueDateFieldSchema("Set the task due date, or pass null to clear it.", true),
+			storyPoints: generateStoryPointsFieldSchema("Set the story points, or pass null to clear them.", true),
 			priority: generatePriorityFieldSchema(config),
 			type: generateTypeFieldSchema(config),
 			...(getProjectValues(config).length > 0 ? { project: generateProjectFieldSchema(config) } : {}),

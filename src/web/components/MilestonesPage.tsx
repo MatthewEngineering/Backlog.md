@@ -490,6 +490,14 @@ const MilestonesPage: React.FC<MilestonesPageProps> = ({
 								<span className="text-sm text-gray-500 dark:text-gray-400">
 									{bucket.total} task{bucket.total === 1 ? "" : "s"}
 								</span>
+								{bucket.totalPoints > 0 && (
+									<span
+										className="text-sm text-gray-500 dark:text-gray-400"
+										title={`${bucket.donePoints} of ${bucket.totalPoints} story points done`}
+									>
+										{bucket.donePoints}/{bucket.totalPoints} pts
+									</span>
+								)}
 								<span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
 									{progress}%
 								</span>

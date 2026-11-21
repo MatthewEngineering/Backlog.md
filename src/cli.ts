@@ -131,6 +131,7 @@ import {
 import { type ReadOutputMode, type ReadOutputOptions, resolveReadOutputMode } from "./utils/read-output-mode.ts";
 import { resolveRuntimeCwd } from "./utils/runtime-cwd.ts";
 import { formatValidStatuses, getCanonicalStatus, getCanonicalStatuses, getValidStatuses } from "./utils/status.ts";
+import { normalizeStoryPoints } from "./utils/story-points.ts";
 import {
 	type DependencyDefects,
 	findDependencyDefects,
@@ -180,6 +181,7 @@ const CONFIG_GET_KEYS = [
 	"zeroPaddedIds",
 	"checkActiveBranches",
 	"activeBranchDays",
+	"pointsPerMonth",
 ] as const;
 
 const CONFIG_SET_KEYS = [
@@ -198,6 +200,7 @@ const CONFIG_SET_KEYS = [
 	"zeroPaddedIds",
 	"checkActiveBranches",
 	"activeBranchDays",
+	"pointsPerMonth",
 ] as const;
 
 function normalizeIntegrationOption(value: string): IntegrationMode | null {
@@ -596,6 +599,7 @@ function hasCreateFieldFlags(options: Record<string, unknown>): boolean {
 			options.ordinal !== undefined ||
 			options.milestone !== undefined ||
 			options.dueDate !== undefined ||
+			options.points !== undefined ||
 			options.plain ||
 			options.ac !== undefined ||
 			options.acceptanceCriteria !== undefined ||
@@ -630,6 +634,8 @@ function hasEditFieldFlags(options: Record<string, unknown>): boolean {
 			options.clearMilestone ||
 			options.dueDate !== undefined ||
 			options.clearDueDate ||
+			options.points !== undefined ||
+			options.clearPoints ||
 			options.clearLabels ||
 			options.plain ||
 			options.addLabel !== undefined ||
@@ -1992,6 +1998,7 @@ addHelpSchema(taskCmd.command("create [title]"), {
 		{ name: "type", type: taskType, description: "Task type; case-insensitive" },
 		{ name: "project", type: projectType, description: "Task project; case-insensitive" },
 		{ name: "due-date", type: "date", description: "Optional due date (YYYY-MM-DD)" },
+		{ name: "points", type: "Number", description: "Optional story points (non-negative, e.g. 3 or 0.5)" },
 		{
 			name: "acceptanceCriteria",
 			type: "Single-line text",
@@ -2033,6 +2040,7 @@ addHelpSchema(taskCmd.command("create [title]"), {
 	.option("--type <type>", "set task type (configured task types)")
 	.option("--project <project>", "set task project (configured projects)")
 	.option("--due-date <date>", "set due date (YYYY-MM-DD)")
+	.option("--points <number>", "set story points (non-negative number)")
 	.option("--plain", "use plain text output after creating")
 	.option(
 		"--ac <criteria>",
@@ -2157,6 +2165,7 @@ addHelpSchema(taskCmd.command("create [title]"), {
 				description: options.description || options.desc ? String(options.description || options.desc) : undefined,
 				status: createAsDraft ? "Draft" : options.status ? String(options.status) : undefined,
 				dueDate: typeof options.dueDate === "string" ? options.dueDate : undefined,
+				storyPoints: typeof options.points === "string" ? normalizeStoryPoints(options.points) : undefined,
 				assignee: parseClearableStringList(options.assignee),
 				labels: parseDelimitedStringList(options.labels),
 				dependencies,
@@ -3365,6 +3374,11 @@ async function performEdit(target: EditCommandTarget, requestedIds: string[] | u
 		process.exitCode = 1;
 		return;
 	}
+	if (options.points !== undefined && options.clearPoints) {
+		console.error("Cannot use --points and --clear-points together.");
+		process.exitCode = 1;
+		return;
+	}
 
 	let milestoneValue: string | null | undefined;
 	if (typeof options.milestone === "string") {
@@ -3535,6 +3549,11 @@ async function performEdit(target: EditCommandTarget, requestedIds: string[] | u
 	} else if (options.clearDueDate) {
 		editArgs.dueDate = null;
 	}
+	if (typeof options.points === "string") {
+		editArgs.storyPoints = options.points;
+	} else if (options.clearPoints) {
+		editArgs.storyPoints = null;
+	}
 	if (labelValues.length > 0) {
 		editArgs.labels = labelValues;
 	} else if (options.clearLabels) {
@@ -3699,6 +3718,8 @@ function configureEditCommand(cmd: Command) {
 		.option("--project <project>", "set task project (configured projects; pass an empty value to clear)")
 		.option("--due-date <date>", "set due date (YYYY-MM-DD)")
 		.option("--clear-due-date", "clear task due date")
+		.option("--points <number>", "set story points (non-negative number)")
+		.option("--clear-points", "clear story points")
 		.option("--ordinal <number>", "set task ordinal for custom ordering")
 		.option("-m, --milestone <milestone>", "assign task to milestone by ID or title")
 		.option("--clear-milestone", "clear task milestone assignment")
@@ -3862,6 +3883,8 @@ const taskEditCommand = addHelpSchema(taskCmd.command("edit [taskIds...]"), {
 		},
 		{ name: "due-date", type: "date", description: "Set the task due date (YYYY-MM-DD)" },
 		{ name: "clear-due-date", type: "Boolean", description: "Clear the task due date" },
+		{ name: "points", type: "Number", description: "Set story points (non-negative, e.g. 3 or 0.5)" },
+		{ name: "clear-points", type: "Boolean", description: "Clear story points" },
 		{
 			name: "assignee",
 			type: "Comma-separated strings",
@@ -4306,6 +4329,8 @@ const draftEditCommand = addHelpSchema(draftCmd.command("edit [taskId]"), {
 		},
 		{ name: "due-date", type: "date", description: "Set the due date (YYYY-MM-DD)" },
 		{ name: "clear-due-date", type: "Boolean", description: "Clear the due date" },
+		{ name: "points", type: "Number", description: "Set story points (non-negative, e.g. 3 or 0.5)" },
+		{ name: "clear-points", type: "Boolean", description: "Clear story points" },
 		{
 			name: "assignee",
 			type: "Comma-separated strings",
@@ -4479,7 +4504,8 @@ addListWindowOptions(milestoneListCommand)
 				(candidate) => milestoneKey(candidate.id) === milestoneKey(id),
 			);
 			const dueDate = milestone?.dueDate ? `, due ${formatUtcDateForDisplay(milestone.dueDate)}` : "";
-			return `  ${id}: ${label} (${bucket.doneCount}/${bucket.total} done${dueDate})`;
+			const points = bucket.totalPoints > 0 ? `, ${bucket.donePoints}/${bucket.totalPoints} pts` : "";
+			return `  ${id}: ${label} (${bucket.doneCount}/${bucket.total} done${points}${dueDate})`;
 		};
 
 		const showCompleted = Boolean(options.showCompleted || process.argv.includes("--show-completed"));
@@ -5387,7 +5413,7 @@ agentsCmd
 
 // Config command group
 const CONFIG_AVAILABLE_KEYS =
-	"Available keys: defaultEditor, projectName, defaultAssignee, defaultStatus, statuses, labels, priorities, types, projects, milestones, definitionOfDone, dateFormat, maxColumnWidth, defaultPort, autoOpenBrowser, hideEmptyColumns, remoteOperations, autoCommit, filesystemOnly, bypassGitHooks, zeroPaddedIds, checkActiveBranches, activeBranchDays";
+	"Available keys: defaultEditor, projectName, defaultAssignee, defaultStatus, statuses, labels, priorities, types, projects, milestones, definitionOfDone, dateFormat, maxColumnWidth, defaultPort, autoOpenBrowser, hideEmptyColumns, remoteOperations, autoCommit, filesystemOnly, bypassGitHooks, zeroPaddedIds, checkActiveBranches, activeBranchDays, pointsPerMonth";
 
 const configCmd = addHelpSchema(program.command("config"), {
 	reads: "Project Backlog.md configuration",
@@ -5578,6 +5604,9 @@ addHelpSchema(configCmd.command("get <key>"), {
 					break;
 				case "activeBranchDays":
 					console.log(config.activeBranchDays?.toString() || "30");
+					break;
+				case "pointsPerMonth":
+					console.log(config.pointsPerMonth?.toString() || "");
 					break;
 				default:
 					console.error(`Unknown config key: ${key}`);
@@ -5770,6 +5799,15 @@ addHelpSchema(configCmd.command("set <key> <value>"), {
 					config.activeBranchDays = days;
 					break;
 				}
+				case "pointsPerMonth": {
+					const points = Number(value.trim());
+					if (!/^\d+$/.test(value.trim()) || !Number.isSafeInteger(points)) {
+						console.error("pointsPerMonth must be a non-negative whole number (0 turns the capacity check off).");
+						process.exit(1);
+					}
+					config.pointsPerMonth = points > 0 ? points : undefined;
+					break;
+				}
 				case "statuses":
 				case "labels":
 				case "types":
@@ -5865,6 +5903,7 @@ addHelpSchema(configCmd.command("list"), {
 			console.log(`  taskPrefix: ${config.prefixes?.task || "task"} (read-only)`);
 			console.log(`  checkActiveBranches: ${config.checkActiveBranches ?? "true"}`);
 			console.log(`  activeBranchDays: ${config.activeBranchDays ?? "30"}`);
+			console.log(`  pointsPerMonth: ${config.pointsPerMonth ?? "(not set)"}`);
 		} catch (err) {
 			reportCommandFailure("Failed to list config values", err);
 		}
@@ -6168,6 +6207,10 @@ program
 	)
 	.option("--no-open", "don't automatically open browser")
 	.option("--non-interactive", "automatically use next free port without asking")
+	.option(
+		"--terminal",
+		"keep the browser terminal page available when --host accepts remote connections. DANGER: gives anyone who can reach the server an unauthenticated shell",
+	)
 	.addHelpText("after", `\n${"=".repeat(72)}\n${REMOTE_ACCESS_WARNING}\n${"=".repeat(72)}\n`)
 	.action(async (options) => {
 		try {
@@ -6222,7 +6265,7 @@ program
 				}
 			}
 
-			await server.start(port, options.open !== false, hostname);
+			await server.start(port, options.open !== false, hostname, options.terminal === true);
 
 			// Graceful shutdown on common termination signals.
 			let shuttingDown = false;

@@ -101,6 +101,7 @@ describe("CLI JSON output", () => {
 					type: "enhancement",
 					priority: "high",
 					project: null,
+					storyPoints: null,
 					assignees: ["@alex"],
 					reporter: "@sam",
 					labels: ["cli", "json"],

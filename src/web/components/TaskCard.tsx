@@ -236,9 +236,17 @@ const TaskCard: React.FC<TaskCardProps> = ({
             <TaskTypeBadge type={task.type} availableTypes={availableTypes} className="min-w-0" />
             <ProjectBadge project={task.project} availableProjects={availableProjects} className="min-w-0" />
           </div>
-          {(acceptanceCriteriaProgress || priorityBadge) && (
+          {(acceptanceCriteriaProgress || priorityBadge || task.storyPoints !== undefined) && (
             <div className="ml-auto flex shrink-0 items-center gap-2">
               <AcceptanceCriteriaProgress task={task} density="card" />
+              {task.storyPoints !== undefined && (
+                <span
+                  title={`${task.storyPoints} story points`}
+                  className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                >
+                  {task.storyPoints} pt
+                </span>
+              )}
               {priorityBadge && (
                 <span className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${priorityBadge.bg} ${priorityBadge.text} transition-colors duration-200`}>
                   {priorityBadge.label}

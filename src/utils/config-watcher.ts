@@ -27,7 +27,13 @@ const BOOLEAN_CONFIG_KEYS = new Set([
 	"check_active_branches",
 ]);
 const ARRAY_CONFIG_KEYS = new Set(["statuses", "labels", "types", "priorities"]);
-const INTEGER_CONFIG_KEYS = new Set(["max_column_width", "default_port", "zero_padded_ids", "active_branch_days"]);
+const INTEGER_CONFIG_KEYS = new Set([
+	"max_column_width",
+	"default_port",
+	"zero_padded_ids",
+	"active_branch_days",
+	"points_per_month",
+]);
 const RECOGNIZED_CONFIG_KEYS = new Set([
 	"project_name",
 	"default_assignee",

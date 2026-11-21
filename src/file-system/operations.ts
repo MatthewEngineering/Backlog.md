@@ -2487,6 +2487,9 @@ ${description || `Milestone: ${title}`}`,
 				case "active_branch_days":
 					config.activeBranchDays = Number.parseInt(readScalar(), 10);
 					break;
+				case "points_per_month":
+					config.pointsPerMonth = Number.parseInt(readScalar(), 10);
+					break;
 				case "onStatusChange":
 				case "on_status_change":
 					config.onStatusChange = readScalar();
@@ -2526,6 +2529,7 @@ ${description || `Milestone: ${title}`}`,
 			bypassGitHooks: config.bypassGitHooks,
 			checkActiveBranches: config.checkActiveBranches,
 			activeBranchDays: config.activeBranchDays,
+			pointsPerMonth: config.pointsPerMonth,
 			onStatusChange: config.onStatusChange,
 			prefixes: config.prefixes,
 			backlogDirectory: config.backlogDirectory,
