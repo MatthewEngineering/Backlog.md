@@ -176,6 +176,7 @@ const CONFIG_GET_KEYS = [
 	"autoOpenBrowser",
 	"remoteOperations",
 	"autoCommit",
+	"autoPush",
 	"filesystemOnly",
 	"bypassGitHooks",
 	"zeroPaddedIds",
@@ -195,6 +196,7 @@ const CONFIG_SET_KEYS = [
 	"defaultPort",
 	"remoteOperations",
 	"autoCommit",
+	"autoPush",
 	"filesystemOnly",
 	"bypassGitHooks",
 	"zeroPaddedIds",
@@ -5413,7 +5415,7 @@ agentsCmd
 
 // Config command group
 const CONFIG_AVAILABLE_KEYS =
-	"Available keys: defaultEditor, projectName, defaultAssignee, defaultStatus, statuses, labels, priorities, types, projects, milestones, definitionOfDone, dateFormat, maxColumnWidth, defaultPort, autoOpenBrowser, hideEmptyColumns, remoteOperations, autoCommit, filesystemOnly, bypassGitHooks, zeroPaddedIds, checkActiveBranches, activeBranchDays, pointsPerMonth";
+	"Available keys: defaultEditor, projectName, defaultAssignee, defaultStatus, statuses, labels, priorities, types, projects, milestones, definitionOfDone, dateFormat, maxColumnWidth, defaultPort, autoOpenBrowser, hideEmptyColumns, remoteOperations, autoCommit, autoPush, filesystemOnly, bypassGitHooks, zeroPaddedIds, checkActiveBranches, activeBranchDays, pointsPerMonth";
 
 const configCmd = addHelpSchema(program.command("config"), {
 	reads: "Project Backlog.md configuration",
@@ -5590,6 +5592,9 @@ addHelpSchema(configCmd.command("get <key>"), {
 				case "autoCommit":
 					console.log(config.autoCommit?.toString() || "");
 					break;
+				case "autoPush":
+					console.log(config.autoPush?.toString() || "false");
+					break;
 				case "filesystemOnly":
 					console.log(config.filesystemOnly?.toString() || "false");
 					break;
@@ -5736,6 +5741,18 @@ addHelpSchema(configCmd.command("set <key> <value>"), {
 						config.autoCommit = false;
 					} else {
 						console.error("autoCommit must be true or false");
+						process.exit(1);
+					}
+					break;
+				}
+				case "autoPush": {
+					const boolValue = value.toLowerCase();
+					if (boolValue === "true" || boolValue === "1" || boolValue === "yes") {
+						config.autoPush = true;
+					} else if (boolValue === "false" || boolValue === "0" || boolValue === "no") {
+						config.autoPush = false;
+					} else {
+						console.error("autoPush must be true or false");
 						process.exit(1);
 					}
 					break;
@@ -5897,6 +5914,7 @@ addHelpSchema(configCmd.command("list"), {
 			console.log(`  defaultPort: ${config.defaultPort ?? "(not set)"}`);
 			console.log(`  remoteOperations: ${config.remoteOperations ?? "(not set)"}`);
 			console.log(`  autoCommit: ${config.autoCommit ?? "(not set)"}`);
+			console.log(`  autoPush: ${config.autoPush ?? "false"}`);
 			console.log(`  filesystemOnly: ${config.filesystemOnly ?? "false"}`);
 			console.log(`  bypassGitHooks: ${config.bypassGitHooks ?? "(not set)"}`);
 			console.log(`  zeroPaddedIds: ${config.zeroPaddedIds ?? "(disabled)"}`);

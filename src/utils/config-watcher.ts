@@ -21,6 +21,7 @@ const BOOLEAN_CONFIG_KEYS = new Set([
 	"hide_empty_columns",
 	"remote_operations",
 	"auto_commit",
+	"auto_push",
 	"filesystem_only",
 	"filesystemOnly",
 	"bypass_git_hooks",

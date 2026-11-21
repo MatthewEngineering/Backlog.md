@@ -2471,6 +2471,9 @@ ${description || `Milestone: ${title}`}`,
 				case "auto_commit":
 					config.autoCommit = readScalar().toLowerCase() === "true";
 					break;
+				case "auto_push":
+					config.autoPush = readScalar().toLowerCase() === "true";
+					break;
 				case "filesystem_only":
 				case "filesystemOnly":
 					config.filesystemOnly = readScalar().toLowerCase() === "true";
@@ -2524,6 +2527,7 @@ ${description || `Milestone: ${title}`}`,
 			browserHostname: config.browserHostname,
 			remoteOperations: config.remoteOperations,
 			autoCommit: config.autoCommit,
+			autoPush: config.autoPush,
 			filesystemOnly: config.filesystemOnly,
 			zeroPaddedIds: config.zeroPaddedIds,
 			bypassGitHooks: config.bypassGitHooks,

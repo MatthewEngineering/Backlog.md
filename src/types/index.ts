@@ -421,6 +421,8 @@ export interface BacklogConfig {
 	hideEmptyColumns?: boolean;
 	remoteOperations?: boolean;
 	autoCommit?: boolean;
+	/** Push each auto-commit to the current branch's upstream. Defaults to false. */
+	autoPush?: boolean;
 	/** Disable all Git integration for filesystem-only projects. */
 	filesystemOnly?: boolean;
 	zeroPaddedIds?: number;

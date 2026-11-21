@@ -12,6 +12,7 @@ type GitPathContext = {
 type GitConfigLoader = () => Promise<BacklogConfig | null>;
 
 const FETCH_TIMEOUT_MS = 10_000;
+const PUSH_TIMEOUT_MS = 30_000;
 
 export interface GitBranchTip {
 	name: string;
@@ -153,6 +154,7 @@ export class GitOperations {
 			args.push("--no-verify");
 		}
 		await this.execGit(args, { cwd: repoRoot ?? undefined });
+		await this.pushAutoCommit(repoRoot ?? this.projectRoot);
 	}
 
 	async commitFiles(message: string, filePaths: string[], repoRoot?: string | null): Promise<void> {
@@ -284,6 +286,7 @@ export class GitOperations {
 						},
 					);
 					await this.runCommitHook("post-commit", [], resolvedRepoRoot, {}).catch(() => undefined);
+					await this.pushAutoCommit(resolvedRepoRoot);
 					return;
 				} catch (error) {
 					lastHeadUpdateError = error instanceof Error ? error : new Error(String(error));
@@ -294,6 +297,34 @@ export class GitOperations {
 			throw new Error(`Git HEAD kept changing while committing selected paths: ${lastHeadUpdateError?.message}`);
 		} finally {
 			await rm(temporaryDirectory, { recursive: true, force: true }).catch(() => undefined);
+		}
+	}
+
+	/**
+	 * With autoPush on, sends the commit Backlog just made to the current branch's upstream, so
+	 * edits made on a server (for example through the browser) reach the remote without a manual push.
+	 * Push only: Backlog never pulls or rebases here, because that would rewrite files under a running
+	 * server. A failed or rejected push keeps the local commit and warns; the next successful push
+	 * carries it.
+	 */
+	private async pushAutoCommit(repoRoot: string): Promise<void> {
+		if (!this.config?.autoPush || this.config.remoteOperations === false) return;
+		const { stdout } = await this.execGit(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"], {
+			cwd: repoRoot,
+			readOnly: true,
+			acceptedExitCodes: [128],
+		});
+		const upstream = stdout.trim();
+		if (!upstream) return;
+		try {
+			await this.execGit(["push", "--quiet"], {
+				cwd: repoRoot,
+				timeoutMs: PUSH_TIMEOUT_MS,
+				env: { GIT_TERMINAL_PROMPT: "0", GCM_INTERACTIVE: "Never" },
+			});
+		} catch (error) {
+			const reason = error instanceof Error ? error.message : String(error);
+			console.warn(`Committed locally but could not push to ${upstream}. ${reason.trim()}`);
 		}
 	}
 

@@ -55,6 +55,7 @@ export function serializeConfig(config: BacklogConfig, original: string | undefi
 		browser_hostname: config.browserHostname,
 		remote_operations: config.remoteOperations,
 		auto_commit: config.autoCommit,
+		auto_push: config.autoPush,
 		filesystem_only: config.filesystemOnly,
 		zero_padded_ids: config.zeroPaddedIds,
 		bypass_git_hooks: config.bypassGitHooks,

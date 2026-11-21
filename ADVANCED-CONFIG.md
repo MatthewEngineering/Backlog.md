@@ -35,6 +35,7 @@ Running `backlog config` with no arguments launches the interactive advanced wiz
 | `autoOpenBrowser` | Open browser automatically | `true`            |
 | `remoteOperations`| Enable remote git operations | `true`           |
 | `autoCommit`      | Automatically commit task changes | `false`       |
+| `autoPush`        | Push each auto-commit to the current branch's upstream | `false`       |
 | `bypassGitHooks`  | Skip git hooks when committing (uses --no-verify) | `false`       |
 | `zeroPaddedIds`   | Pad all IDs (tasks, docs, etc.) with leading zeros | `(disabled)`  |
 | `checkActiveBranches` | Check task states across active branches for accuracy | `true` |
@@ -50,6 +51,8 @@ Running `backlog config` with no arguments launches the interactive advanced wiz
 > **Note**: Set `remoteOperations: false` to work offline. This disables git fetch operations and loads tasks from local branches only, useful when working without network connectivity.
 
 > **Git Control**: By default, `autoCommit` is set to `false`, giving you full control over your git history. Task operations will modify files but won't automatically commit changes. Set `autoCommit: true` if you prefer automatic commits for each task operation.
+
+> **Auto Push**: With `autoCommit` and `autoPush` both `true`, Backlog.md runs `git push` after each commit it makes, so edits made on a server (for example through `backlog browser`) reach the remote right away. It only pushes when the current branch has an upstream and `remoteOperations` is not `false`. It never pulls: bring in changes made elsewhere with `git pull --rebase`. If a push fails or is rejected because the remote is ahead, the commit stays local, a warning is printed, and the next successful push carries it.
 
 > **Git Hooks**: If you have pre-commit hooks (like conventional commits or linters) that interfere with backlog.md's automated commits, set `bypassGitHooks: true` to skip them using the `--no-verify` flag.
 
