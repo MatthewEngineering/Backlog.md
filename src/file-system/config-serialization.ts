@@ -62,6 +62,7 @@ export function serializeConfig(config: BacklogConfig, original: string | undefi
 		check_active_branches: config.checkActiveBranches,
 		active_branch_days: config.activeBranchDays,
 		points_per_month: config.pointsPerMonth || undefined,
+		web_interface: config.webInterface || undefined,
 		onStatusChange: config.onStatusChange || undefined,
 		task_prefix: config.prefixes?.task || undefined,
 		backlog_directory: config.backlogDirectory || undefined,

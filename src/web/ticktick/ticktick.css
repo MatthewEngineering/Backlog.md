@@ -1,0 +1,1300 @@
+/* TickTick-style task app (/app). Everything is scoped under .tt-root so the classic pages keep
+   their own look. Colours are tokens, redefined for html.dark. */
+
+.tt-root {
+	--tt-accent: #4772fa;
+	--tt-accent-soft: rgb(71 114 250 / 0.1);
+	--tt-bg: #ffffff;
+	--tt-rail: #f2f2f2;
+	--tt-side: #f8f8f8;
+	--tt-text: #191919;
+	--tt-text-2: #737373;
+	--tt-text-3: #a8a8a8;
+	--tt-border: #ececec;
+	--tt-hover: rgb(0 0 0 / 0.04);
+	--tt-selected: rgb(71 114 250 / 0.1);
+	--tt-input: #f5f5f5;
+	--tt-shadow: 0 6px 24px rgb(0 0 0 / 0.12), 0 1px 3px rgb(0 0 0 / 0.08);
+	--tt-high: #d52b24;
+	--tt-medium: #faa80c;
+	--tt-low: #4772fa;
+	--tt-none: #b4b4b4;
+	--tt-overdue: #d52b24;
+	--tt-q1: #d52b24;
+	--tt-q2: #e8a400;
+	--tt-q3: #4772fa;
+	--tt-q4: #2fa36b;
+
+	position: fixed;
+	inset: 0;
+	display: flex;
+	background: var(--tt-bg);
+	color: var(--tt-text);
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+	font-size: 14px;
+	line-height: 1.4;
+	overflow: hidden;
+}
+
+html.dark .tt-root {
+	--tt-accent: #6b8cff;
+	--tt-accent-soft: rgb(107 140 255 / 0.15);
+	--tt-bg: #1f1f1f;
+	--tt-rail: #141414;
+	--tt-side: #191919;
+	--tt-text: #e8e8e8;
+	--tt-text-2: #9a9a9a;
+	--tt-text-3: #6a6a6a;
+	--tt-border: #2c2c2c;
+	--tt-hover: rgb(255 255 255 / 0.05);
+	--tt-selected: rgb(107 140 255 / 0.16);
+	--tt-input: #2a2a2a;
+	--tt-shadow: 0 8px 28px rgb(0 0 0 / 0.5);
+	--tt-none: #6a6a6a;
+}
+
+.tt-root *,
+.tt-root *::before,
+.tt-root *::after {
+	box-sizing: border-box;
+}
+
+.tt-root button {
+	font: inherit;
+	color: inherit;
+	background: none;
+	border: 0;
+	padding: 0;
+}
+
+.tt-root input,
+.tt-root textarea,
+.tt-root select {
+	font: inherit;
+	color: inherit;
+}
+
+/* ---------------------------------------------------------------- rail */
+
+.tt-rail {
+	width: 52px;
+	flex: none;
+	background: var(--tt-rail);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 12px 0;
+	gap: 4px;
+}
+
+.tt-avatar {
+	width: 32px;
+	height: 32px;
+	border-radius: 9999px;
+	background: var(--tt-accent);
+	color: #fff;
+	display: grid;
+	place-items: center;
+	font-weight: 600;
+	font-size: 14px;
+	margin-bottom: 14px;
+}
+
+.tt-rail-btn {
+	width: 36px;
+	height: 36px;
+	border-radius: 8px;
+	display: grid;
+	place-items: center;
+	color: var(--tt-text-3);
+	position: relative;
+	text-decoration: none;
+}
+
+.tt-rail-btn:hover {
+	color: var(--tt-text-2);
+	background: var(--tt-hover);
+}
+
+.tt-rail-btn.is-active {
+	color: var(--tt-accent);
+}
+
+.tt-rail-spacer {
+	flex: 1;
+}
+
+.tt-tooltip {
+	position: absolute;
+	left: 44px;
+	top: 50%;
+	transform: translateY(-50%);
+	white-space: nowrap;
+	background: #333;
+	color: #fff;
+	font-size: 12px;
+	padding: 4px 8px;
+	border-radius: 4px;
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 0.12s;
+	z-index: 80;
+}
+
+.tt-rail-btn:hover .tt-tooltip {
+	opacity: 1;
+}
+
+/* ---------------------------------------------------------------- sidebar */
+
+.tt-sidebar {
+	width: 260px;
+	flex: none;
+	background: var(--tt-side);
+	border-right: 1px solid var(--tt-border);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.tt-sidebar-scroll {
+	flex: 1;
+	overflow-y: auto;
+	padding: 12px 8px 24px;
+}
+
+.tt-nav-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	height: 36px;
+	padding: 0 10px;
+	border-radius: 6px;
+	cursor: pointer;
+	color: var(--tt-text);
+	text-decoration: none;
+	user-select: none;
+	position: relative;
+}
+
+.tt-nav-item:hover {
+	background: var(--tt-hover);
+}
+
+.tt-nav-item.is-active {
+	background: var(--tt-selected);
+}
+
+.tt-nav-item.is-drop {
+	outline: 2px dashed var(--tt-accent);
+	outline-offset: -2px;
+}
+
+.tt-nav-icon {
+	width: 18px;
+	height: 18px;
+	flex: none;
+	display: grid;
+	place-items: center;
+	color: var(--tt-text-2);
+}
+
+.tt-nav-label {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.tt-nav-count {
+	font-size: 12px;
+	color: var(--tt-text-3);
+	min-width: 16px;
+	text-align: right;
+}
+
+.tt-nav-more {
+	display: none;
+	color: var(--tt-text-3);
+	width: 20px;
+	height: 20px;
+	place-items: center;
+	border-radius: 4px;
+}
+
+.tt-nav-item:hover .tt-nav-more {
+	display: grid;
+}
+
+.tt-nav-item:hover .tt-nav-more + .tt-nav-count {
+	display: none;
+}
+
+.tt-nav-more:hover {
+	background: var(--tt-hover);
+	color: var(--tt-text);
+}
+
+.tt-caret {
+	width: 14px;
+	height: 14px;
+	display: grid;
+	place-items: center;
+	color: var(--tt-text-3);
+	flex: none;
+	transition: transform 0.12s;
+}
+
+.tt-caret.is-open {
+	transform: rotate(90deg);
+}
+
+.tt-section {
+	margin-top: 14px;
+	padding-top: 10px;
+	border-top: 1px solid var(--tt-border);
+}
+
+.tt-section-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	height: 30px;
+	padding: 0 10px;
+	font-size: 12px;
+	color: var(--tt-text-3);
+	cursor: pointer;
+	user-select: none;
+}
+
+.tt-section-head:hover {
+	color: var(--tt-text-2);
+}
+
+.tt-section-head .tt-section-title {
+	flex: 1;
+}
+
+.tt-icon-btn {
+	width: 24px;
+	height: 24px;
+	border-radius: 4px;
+	display: grid;
+	place-items: center;
+	color: var(--tt-text-3);
+	cursor: pointer;
+}
+
+.tt-icon-btn:hover {
+	background: var(--tt-hover);
+	color: var(--tt-text);
+}
+
+.tt-list-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 9999px;
+	flex: none;
+}
+
+/* ---------------------------------------------------------------- main column */
+
+.tt-main {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	background: var(--tt-bg);
+}
+
+.tt-main-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 18px 24px 10px;
+	min-height: 62px;
+}
+
+.tt-main-title {
+	font-size: 20px;
+	font-weight: 700;
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.tt-main-sub {
+	font-size: 12px;
+	color: var(--tt-text-3);
+	font-weight: 400;
+	margin-left: 8px;
+}
+
+.tt-main-scroll {
+	flex: 1;
+	overflow-y: auto;
+	padding: 0 24px 48px;
+}
+
+.tt-menu-toggle {
+	display: none;
+}
+
+.tt-quickadd {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: 40px;
+	padding: 0 12px;
+	border-radius: 6px;
+	background: var(--tt-input);
+	border: 1px solid transparent;
+	margin-bottom: 14px;
+}
+
+.tt-quickadd:focus-within {
+	border-color: var(--tt-accent);
+	background: var(--tt-bg);
+}
+
+.tt-quickadd input {
+	flex: 1;
+	border: 0;
+	outline: 0;
+	background: transparent;
+	min-width: 0;
+}
+
+.tt-quickadd input::placeholder {
+	color: var(--tt-text-3);
+}
+
+.tt-quickadd-hint {
+	display: flex;
+	gap: 6px;
+	flex-wrap: wrap;
+	margin: -8px 0 12px 4px;
+	font-size: 12px;
+	color: var(--tt-text-2);
+}
+
+.tt-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 1px 8px;
+	border-radius: 9999px;
+	background: var(--tt-accent-soft);
+	color: var(--tt-accent);
+	font-size: 12px;
+	line-height: 18px;
+	white-space: nowrap;
+}
+
+.tt-chip.is-muted {
+	background: var(--tt-input);
+	color: var(--tt-text-2);
+}
+
+/* groups */
+
+.tt-group {
+	margin-bottom: 6px;
+}
+
+.tt-group-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	height: 32px;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	user-select: none;
+	color: var(--tt-text);
+}
+
+.tt-group-head.is-overdue {
+	color: var(--tt-overdue);
+}
+
+.tt-group-count {
+	font-weight: 400;
+	color: var(--tt-text-3);
+	font-size: 12px;
+}
+
+.tt-group-head .tt-group-action {
+	margin-left: auto;
+	font-weight: 400;
+	font-size: 12px;
+	color: var(--tt-accent);
+}
+
+.tt-group.is-drop {
+	background: var(--tt-accent-soft);
+	border-radius: 6px;
+}
+
+.tt-empty-group {
+	font-size: 12px;
+	color: var(--tt-text-3);
+	padding: 2px 0 8px 26px;
+}
+
+/* task rows */
+
+.tt-task {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-height: 40px;
+	padding: 0 8px 0 6px;
+	border-radius: 6px;
+	cursor: pointer;
+	position: relative;
+}
+
+.tt-task::after {
+	content: "";
+	position: absolute;
+	left: 34px;
+	right: 8px;
+	bottom: 0;
+	border-bottom: 1px solid var(--tt-border);
+}
+
+.tt-task:hover {
+	background: var(--tt-hover);
+}
+
+.tt-task.is-selected {
+	background: var(--tt-selected);
+}
+
+.tt-task.is-done .tt-task-title {
+	color: var(--tt-text-3);
+	text-decoration: line-through;
+}
+
+.tt-task.is-dragging {
+	opacity: 0.4;
+}
+
+.tt-task-title {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.tt-task-meta {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex: none;
+	font-size: 12px;
+	color: var(--tt-text-3);
+	max-width: 50%;
+	overflow: hidden;
+}
+
+.tt-task-list {
+	flex: none;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 140px;
+}
+
+.tt-quadrant .tt-tag {
+	display: none;
+}
+
+.tt-date {
+	color: var(--tt-accent);
+	white-space: nowrap;
+}
+
+.tt-date.is-overdue {
+	color: var(--tt-overdue);
+}
+
+.tt-date.is-future {
+	color: var(--tt-text-3);
+}
+
+.tt-tag {
+	max-width: 120px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: var(--tt-text-2);
+	background: var(--tt-input);
+	border-radius: 9999px;
+	padding: 0 7px;
+	line-height: 18px;
+	white-space: nowrap;
+}
+
+/* checkbox */
+
+.tt-check {
+	width: 16px;
+	height: 16px;
+	flex: none;
+	border-radius: 3px;
+	border: 1.5px solid var(--tt-none);
+	display: grid;
+	place-items: center;
+	cursor: pointer;
+	transition: background 0.12s;
+	background: transparent;
+}
+
+.tt-check.p-high {
+	border-color: var(--tt-high);
+	background: rgb(213 43 36 / 0.08);
+}
+
+.tt-check.p-medium {
+	border-color: var(--tt-medium);
+	background: rgb(250 168 12 / 0.1);
+}
+
+.tt-check.p-low {
+	border-color: var(--tt-low);
+	background: rgb(71 114 250 / 0.08);
+}
+
+.tt-check:hover {
+	filter: brightness(0.92);
+}
+
+.tt-check.is-checked {
+	background: var(--tt-none);
+	border-color: var(--tt-none);
+	color: #fff;
+}
+
+.tt-check svg {
+	opacity: 0;
+}
+
+.tt-check.is-checked svg {
+	opacity: 1;
+}
+
+/* ---------------------------------------------------------------- detail pane */
+
+.tt-detail {
+	width: 400px;
+	flex: none;
+	border-left: 1px solid var(--tt-border);
+	display: flex;
+	flex-direction: column;
+	background: var(--tt-bg);
+	min-height: 0;
+}
+
+.tt-detail-top {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	height: 52px;
+	padding: 0 16px;
+	border-bottom: 1px solid var(--tt-border);
+}
+
+.tt-detail-date {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--tt-text-2);
+	cursor: pointer;
+	padding: 4px 8px;
+	border-radius: 4px;
+	position: relative;
+}
+
+.tt-detail-date:hover {
+	background: var(--tt-hover);
+}
+
+.tt-detail-body {
+	flex: 1;
+	overflow-y: auto;
+	padding: 14px 20px 24px;
+}
+
+.tt-root .tt-detail-title {
+	width: 100%;
+	border: 0;
+	outline: 0;
+	background: transparent;
+	font-size: 18px;
+	font-weight: 600;
+	resize: none;
+	padding: 0;
+	margin-bottom: 8px;
+	field-sizing: content;
+}
+
+.tt-root .tt-detail-desc {
+	width: 100%;
+	min-height: 160px;
+	border: 0;
+	outline: 0;
+	background: transparent;
+	resize: none;
+	color: var(--tt-text);
+	line-height: 1.6;
+	padding: 0;
+	field-sizing: content;
+}
+
+.tt-detail-desc::placeholder,
+.tt-detail-title::placeholder {
+	color: var(--tt-text-3);
+}
+
+.tt-field-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 32px;
+	font-size: 13px;
+	color: var(--tt-text-2);
+}
+
+.tt-field-row > .tt-field-label {
+	width: 72px;
+	flex: none;
+	color: var(--tt-text-3);
+}
+
+.tt-select {
+	flex: 1;
+	min-width: 0;
+	border: 1px solid transparent;
+	background: transparent;
+	border-radius: 4px;
+	padding: 4px 6px;
+	color: var(--tt-text);
+	cursor: pointer;
+}
+
+.tt-select:hover,
+.tt-select:focus {
+	background: var(--tt-input);
+	outline: 0;
+}
+
+.tt-detail-meta {
+	border-top: 1px solid var(--tt-border);
+	padding-top: 10px;
+	margin-top: 14px;
+}
+
+.tt-checklist-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-height: 32px;
+}
+
+.tt-checklist-item input[type="text"] {
+	flex: 1;
+	border: 0;
+	outline: 0;
+	background: transparent;
+}
+
+.tt-checklist-item.is-done span {
+	color: var(--tt-text-3);
+	text-decoration: line-through;
+}
+
+.tt-detail-foot {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: 44px;
+	padding: 0 16px;
+	border-top: 1px solid var(--tt-border);
+	color: var(--tt-text-2);
+	font-size: 13px;
+}
+
+.tt-detail-empty {
+	flex: 1;
+	display: grid;
+	place-items: center;
+	color: var(--tt-text-3);
+	text-align: center;
+	padding: 24px;
+}
+
+.tt-link-btn {
+	color: var(--tt-accent);
+	cursor: pointer;
+	font-size: 13px;
+}
+
+.tt-link-btn:hover {
+	text-decoration: underline;
+}
+
+/* ---------------------------------------------------------------- popovers & modals */
+
+.tt-popover {
+	position: absolute;
+	z-index: 60;
+	background: var(--tt-bg);
+	border: 1px solid var(--tt-border);
+	border-radius: 8px;
+	box-shadow: var(--tt-shadow);
+	padding: 6px;
+	min-width: 200px;
+}
+
+.tt-menu-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	height: 34px;
+	padding: 0 10px;
+	border-radius: 4px;
+	cursor: pointer;
+	text-align: left;
+	white-space: nowrap;
+}
+
+.tt-menu-item:hover {
+	background: var(--tt-hover);
+}
+
+.tt-menu-item.is-danger {
+	color: var(--tt-high);
+}
+
+.tt-menu-sep {
+	height: 1px;
+	background: var(--tt-border);
+	margin: 4px 0;
+}
+
+.tt-quick-dates {
+	display: flex;
+	justify-content: space-between;
+	padding: 4px 4px 8px;
+}
+
+.tt-quick-date {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	font-size: 11px;
+	color: var(--tt-text-2);
+	padding: 6px 8px;
+	border-radius: 6px;
+	cursor: pointer;
+}
+
+.tt-quick-date:hover {
+	background: var(--tt-hover);
+	color: var(--tt-accent);
+}
+
+.tt-flags {
+	display: flex;
+	gap: 4px;
+	padding: 4px;
+}
+
+.tt-flag-btn {
+	width: 34px;
+	height: 30px;
+	border-radius: 6px;
+	display: grid;
+	place-items: center;
+	cursor: pointer;
+}
+
+.tt-flag-btn:hover,
+.tt-flag-btn.is-active {
+	background: var(--tt-hover);
+}
+
+.tt-modal-backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgb(0 0 0 / 0.35);
+	z-index: 90;
+	display: grid;
+	place-items: center;
+	padding: 16px;
+}
+
+.tt-modal {
+	width: min(420px, 100%);
+	background: var(--tt-bg);
+	color: var(--tt-text);
+	border-radius: 10px;
+	box-shadow: var(--tt-shadow);
+	padding: 20px;
+}
+
+.tt-modal h2 {
+	font-size: 16px;
+	font-weight: 600;
+	margin: 0 0 16px;
+}
+
+.tt-input {
+	width: 100%;
+	height: 36px;
+	border-radius: 6px;
+	border: 1px solid var(--tt-border);
+	background: var(--tt-bg);
+	padding: 0 10px;
+	outline: 0;
+}
+
+.tt-input:focus {
+	border-color: var(--tt-accent);
+}
+
+.tt-modal label {
+	display: block;
+	font-size: 12px;
+	color: var(--tt-text-2);
+	margin: 12px 0 4px;
+}
+
+.tt-modal-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 20px;
+}
+
+.tt-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	white-space: nowrap;
+	flex: none;
+	height: 32px;
+	padding: 0 16px;
+	border-radius: 6px;
+	cursor: pointer;
+	border: 1px solid var(--tt-border) !important;
+}
+
+.tt-btn.is-primary {
+	background: var(--tt-accent) !important;
+	border-color: var(--tt-accent) !important;
+	color: #fff !important;
+}
+
+.tt-btn:disabled {
+	opacity: 0.5;
+}
+
+.tt-error {
+	color: var(--tt-high);
+	font-size: 12px;
+	margin-top: 8px;
+}
+
+.tt-toast {
+	position: fixed;
+	bottom: 24px;
+	left: 50%;
+	transform: translateX(-50%);
+	background: #333;
+	color: #fff;
+	border-radius: 6px;
+	padding: 10px 16px;
+	z-index: 95;
+	display: flex;
+	gap: 16px;
+	align-items: center;
+	font-size: 13px;
+	box-shadow: var(--tt-shadow);
+}
+
+.tt-toast button {
+	color: #8fb0ff !important;
+	cursor: pointer;
+}
+
+/* ---------------------------------------------------------------- matrix */
+
+.tt-matrix {
+	flex: 1;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	grid-template-rows: 1fr 1fr;
+	gap: 12px;
+	padding: 0 24px 24px;
+	min-height: 0;
+}
+
+.tt-quadrant {
+	border-radius: 10px;
+	background: var(--tt-side);
+	border: 1px solid var(--tt-border);
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.tt-quadrant.is-drop {
+	outline: 2px dashed var(--tt-accent);
+	outline-offset: -2px;
+}
+
+.tt-quadrant-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 14px 8px;
+	font-weight: 600;
+	font-size: 14px;
+}
+
+.tt-quadrant-badge {
+	width: 20px;
+	height: 20px;
+	border-radius: 5px;
+	color: #fff;
+	display: grid;
+	place-items: center;
+	font-size: 11px;
+	font-weight: 700;
+}
+
+.tt-quadrant-body {
+	flex: 1;
+	overflow-y: auto;
+	padding: 0 8px 8px;
+}
+
+.tt-quadrant-body .tt-task::after {
+	left: 30px;
+}
+
+.tt-quadrant-empty {
+	color: var(--tt-text-3);
+	font-size: 12px;
+	text-align: center;
+	padding: 24px 0;
+}
+
+/* ---------------------------------------------------------------- calendar */
+
+.tt-cal {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	padding: 0 24px 16px;
+}
+
+.tt-cal-weekdays,
+.tt-cal-grid {
+	display: grid;
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.tt-cal-weekdays div {
+	font-size: 12px;
+	color: var(--tt-text-3);
+	padding: 6px 8px;
+	text-align: right;
+}
+
+.tt-cal-grid {
+	flex: 1;
+	grid-auto-rows: minmax(96px, 1fr);
+	border-top: 1px solid var(--tt-border);
+	border-left: 1px solid var(--tt-border);
+	min-height: 0;
+	overflow-y: auto;
+}
+
+.tt-cal-cell {
+	border-right: 1px solid var(--tt-border);
+	border-bottom: 1px solid var(--tt-border);
+	padding: 4px;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	overflow: hidden;
+}
+
+.tt-cal-cell.is-other {
+	background: var(--tt-side);
+}
+
+.tt-cal-cell.is-other .tt-cal-day {
+	color: var(--tt-text-3);
+}
+
+.tt-cal-cell.is-drop {
+	background: var(--tt-accent-soft);
+}
+
+.tt-cal-day {
+	align-self: flex-end;
+	font-size: 12px;
+	width: 22px;
+	height: 22px;
+	display: grid;
+	place-items: center;
+	border-radius: 9999px;
+	cursor: pointer;
+}
+
+.tt-cal-cell.is-today .tt-cal-day {
+	background: var(--tt-accent);
+	color: #fff;
+}
+
+.tt-cal-task {
+	font-size: 12px;
+	border-radius: 3px;
+	padding: 1px 6px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+	background: var(--tt-accent-soft);
+	border-left: 3px solid var(--tt-none);
+}
+
+.tt-cal-task.p-high {
+	border-left-color: var(--tt-high);
+}
+
+.tt-cal-task.p-medium {
+	border-left-color: var(--tt-medium);
+}
+
+.tt-cal-task.p-low {
+	border-left-color: var(--tt-low);
+}
+
+.tt-cal-task.is-done {
+	opacity: 0.5;
+	text-decoration: line-through;
+}
+
+.tt-cal-more {
+	font-size: 11px;
+	color: var(--tt-text-3);
+	padding-left: 6px;
+	cursor: pointer;
+}
+
+.tt-seg {
+	display: inline-flex;
+	background: var(--tt-input);
+	border-radius: 6px;
+	padding: 2px;
+}
+
+.tt-seg button {
+	padding: 3px 10px;
+	border-radius: 4px;
+	font-size: 12px;
+	cursor: pointer;
+	color: var(--tt-text-2);
+}
+
+.tt-seg button.is-active {
+	background: var(--tt-bg);
+	color: var(--tt-text);
+	box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+}
+
+/* ---------------------------------------------------------------- focus (pomodoro) */
+
+.tt-focus {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 24px;
+	padding: 24px;
+}
+
+.tt-focus-ring {
+	width: 260px;
+	height: 260px;
+	position: relative;
+}
+
+.tt-focus-time {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	font-size: 44px;
+	font-weight: 300;
+	font-variant-numeric: tabular-nums;
+}
+
+.tt-focus-stats {
+	display: flex;
+	gap: 32px;
+	color: var(--tt-text-2);
+	font-size: 13px;
+	text-align: center;
+}
+
+.tt-focus-stats strong {
+	display: block;
+	font-size: 22px;
+	color: var(--tt-text);
+	font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- mobile */
+
+.tt-backdrop {
+	display: none;
+}
+
+.tt-tabbar {
+	display: none;
+}
+
+@media (max-width: 1100px) {
+	.tt-detail.is-empty {
+		display: none !important;
+	}
+
+	.tt-detail {
+		position: fixed;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 70;
+		box-shadow: var(--tt-shadow);
+		width: min(420px, 100%);
+	}
+}
+
+@media (max-width: 767px) {
+	.tt-root {
+		flex-direction: column;
+	}
+
+	.tt-rail {
+		display: none;
+	}
+
+	.tt-sidebar {
+		position: fixed;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		z-index: 75;
+		width: min(300px, 85vw);
+		transform: translateX(-100%);
+		transition: transform 0.2s;
+		box-shadow: var(--tt-shadow);
+	}
+
+	.tt-root.is-drawer-open .tt-sidebar {
+		transform: translateX(0);
+	}
+
+	.tt-root.is-drawer-open .tt-backdrop {
+		display: block;
+		position: fixed;
+		inset: 0;
+		background: rgb(0 0 0 / 0.35);
+		z-index: 74;
+	}
+
+	.tt-menu-toggle {
+		display: grid;
+	}
+
+	.tt-main {
+		min-height: 0;
+	}
+
+	.tt-main-head {
+		padding: 12px 16px 8px;
+		min-height: 52px;
+	}
+
+	.tt-main-scroll {
+		padding: 0 16px 32px;
+	}
+
+	.tt-detail {
+		width: 100%;
+	}
+
+	.tt-task-list {
+		display: none;
+	}
+
+	.tt-matrix {
+		grid-template-columns: 1fr;
+		grid-template-rows: none;
+		grid-auto-rows: minmax(220px, auto);
+		overflow-y: auto;
+		padding: 0 16px 16px;
+	}
+
+	.tt-cal {
+		padding: 0 8px 8px;
+	}
+
+	.tt-cal-grid {
+		grid-auto-rows: minmax(64px, 1fr);
+	}
+
+	.tt-cal-task {
+		font-size: 10px;
+		padding: 0 3px;
+	}
+
+	.tt-tabbar {
+		display: flex;
+		flex: none;
+		height: 56px;
+		border-top: 1px solid var(--tt-border);
+		background: var(--tt-side);
+		justify-content: space-around;
+		align-items: center;
+		padding-bottom: env(safe-area-inset-bottom);
+	}
+
+	.tt-tabbar a {
+		display: grid;
+		place-items: center;
+		width: 48px;
+		height: 44px;
+		color: var(--tt-text-3);
+	}
+
+	.tt-tabbar a.is-active {
+		color: var(--tt-accent);
+	}
+}

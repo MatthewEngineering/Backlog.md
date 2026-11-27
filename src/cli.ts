@@ -183,6 +183,7 @@ const CONFIG_GET_KEYS = [
 	"checkActiveBranches",
 	"activeBranchDays",
 	"pointsPerMonth",
+	"webInterface",
 ] as const;
 
 const CONFIG_SET_KEYS = [
@@ -203,6 +204,7 @@ const CONFIG_SET_KEYS = [
 	"checkActiveBranches",
 	"activeBranchDays",
 	"pointsPerMonth",
+	"webInterface",
 ] as const;
 
 function normalizeIntegrationOption(value: string): IntegrationMode | null {
@@ -5415,7 +5417,7 @@ agentsCmd
 
 // Config command group
 const CONFIG_AVAILABLE_KEYS =
-	"Available keys: defaultEditor, projectName, defaultAssignee, defaultStatus, statuses, labels, priorities, types, projects, milestones, definitionOfDone, dateFormat, maxColumnWidth, defaultPort, autoOpenBrowser, hideEmptyColumns, remoteOperations, autoCommit, autoPush, filesystemOnly, bypassGitHooks, zeroPaddedIds, checkActiveBranches, activeBranchDays, pointsPerMonth";
+	"Available keys: defaultEditor, projectName, defaultAssignee, defaultStatus, statuses, labels, priorities, types, projects, milestones, definitionOfDone, dateFormat, maxColumnWidth, defaultPort, autoOpenBrowser, hideEmptyColumns, remoteOperations, autoCommit, autoPush, filesystemOnly, bypassGitHooks, zeroPaddedIds, checkActiveBranches, activeBranchDays, pointsPerMonth, webInterface";
 
 const configCmd = addHelpSchema(program.command("config"), {
 	reads: "Project Backlog.md configuration",
@@ -5612,6 +5614,9 @@ addHelpSchema(configCmd.command("get <key>"), {
 					break;
 				case "pointsPerMonth":
 					console.log(config.pointsPerMonth?.toString() || "");
+					break;
+				case "webInterface":
+					console.log(config.webInterface ?? "app");
 					break;
 				default:
 					console.error(`Unknown config key: ${key}`);
@@ -5825,6 +5830,15 @@ addHelpSchema(configCmd.command("set <key> <value>"), {
 					config.pointsPerMonth = points > 0 ? points : undefined;
 					break;
 				}
+				case "webInterface": {
+					const choice = value.trim().toLowerCase();
+					if (choice !== "app" && choice !== "classic") {
+						console.error('webInterface must be "app" (TickTick-style task app) or "classic" (board).');
+						process.exit(1);
+					}
+					config.webInterface = choice;
+					break;
+				}
 				case "statuses":
 				case "labels":
 				case "types":
@@ -5922,6 +5936,7 @@ addHelpSchema(configCmd.command("list"), {
 			console.log(`  checkActiveBranches: ${config.checkActiveBranches ?? "true"}`);
 			console.log(`  activeBranchDays: ${config.activeBranchDays ?? "30"}`);
 			console.log(`  pointsPerMonth: ${config.pointsPerMonth ?? "(not set)"}`);
+			console.log(`  webInterface: ${config.webInterface ?? "app"}`);
 		} catch (err) {
 			reportCommandFailure("Failed to list config values", err);
 		}

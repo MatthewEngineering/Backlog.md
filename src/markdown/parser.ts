@@ -177,6 +177,7 @@ export function parseMilestone(content: string): Milestone {
 		id: String(frontmatter.id || ""),
 		title: String(frontmatter.title || ""),
 		dueDate: normalizeDueDate(frontmatter.due_date, "due_date"),
+		parent: frontmatter.parent ? String(frontmatter.parent).trim() || undefined : undefined,
 		description: extractSection(rawContent, "Description") || "",
 		rawContent,
 	};

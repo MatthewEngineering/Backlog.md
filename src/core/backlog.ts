@@ -126,6 +126,7 @@ import {
 	type DuplicateRepairResult,
 	previewDuplicateTaskIdRepair,
 } from "./duplicate-task-repair.ts";
+import { milestoneKey } from "./milestones.ts";
 import { migrateDraftPrefixes, needsDraftPrefixMigration } from "./prefix-migration.ts";
 import {
 	calculateBlockOrdinals,
@@ -4014,6 +4015,55 @@ export class Core {
 				return true;
 			}),
 		);
+	}
+
+	/**
+	 * Nest a milestone under another active milestone, or move it back to the top level (`null`).
+	 * A milestone cannot be its own ancestor, so the parent may not be the milestone or one of its
+	 * descendants. Committed like the other milestone edits when auto-commit is on.
+	 */
+	async setMilestoneParent(identifier: string, parent: string | null, autoCommit?: boolean): Promise<Milestone> {
+		const milestones = await this.fs.listMilestones();
+		const target = milestones.find((m) => milestoneKey(m.id) === milestoneKey(identifier));
+		if (!target) throw new Error(`Milestone not found: ${identifier}`);
+		let parentId: string | null = null;
+		if (parent !== null && parent.trim() !== "") {
+			const parentMilestone = milestones.find(
+				(m) => milestoneKey(m.id) === milestoneKey(parent) || milestoneKey(m.title) === milestoneKey(parent),
+			);
+			if (!parentMilestone) throw new Error(`Parent milestone not found: ${parent}`);
+			const byId = new Map(milestones.map((m) => [milestoneKey(m.id), m]));
+			const seen = new Set<string>();
+			for (let cursor: Milestone | undefined = parentMilestone; cursor; ) {
+				const key = milestoneKey(cursor.id);
+				if (key === milestoneKey(target.id)) {
+					throw new Error("A milestone cannot be nested under itself or one of its own sub-milestones");
+				}
+				if (seen.has(key)) break;
+				seen.add(key);
+				cursor = cursor.parent ? byId.get(milestoneKey(cursor.parent)) : undefined;
+			}
+			parentId = parentMilestone.id;
+		}
+		const autoCommitEnabled = await this.shouldAutoCommit(autoCommit);
+		const result = await this.fs.setMilestoneParent(target.id, parentId);
+		if (!result.success || !result.milestone || !result.filePath) {
+			throw new Error(`Milestone not found: ${identifier}`);
+		}
+		if (autoCommitEnabled) {
+			await this.git.addFile(result.filePath);
+			await this.git.commitFiles(`backlog: Nest milestone ${target.id}`, [result.filePath]);
+		}
+		return result.milestone;
+	}
+
+	/** Commit a milestone file just created by the browser, when auto-commit is on. */
+	async commitCreatedMilestone(milestone: Milestone, autoCommit?: boolean): Promise<void> {
+		if (!(await this.shouldAutoCommit(autoCommit))) return;
+		const filePath = await this.fs.getMilestoneFilePath(milestone.id);
+		if (!filePath) return;
+		await this.git.addFile(filePath);
+		await this.git.commitFiles(`backlog: Add milestone ${milestone.id}`, [filePath]);
 	}
 
 	async archiveMilestone(

@@ -63,6 +63,8 @@ const searchResults: SearchResult[] = tasks.map((task) => ({ type: "task", task,
 
 const defaultConfig = {
 	projectName: "Route QA",
+	// These routes are the classic board's; the fork's default home page is the task app (/app).
+	webInterface: "classic",
 	statuses: ["To Do", "In Progress", "Done"],
 	labels: ["web"],
 	types: ["Bug", "Feature", "Customer Request"],

@@ -51,6 +51,7 @@ const RECOGNIZED_CONFIG_KEYS = new Set([
 	"task_prefix",
 	"backlog_directory",
 	"backlogDirectory",
+	"web_interface",
 ]);
 
 function hasValidExplicitValues(content: string, config: BacklogConfig): boolean {
@@ -80,6 +81,7 @@ function hasValidExplicitValues(content: string, config: BacklogConfig): boolean
 			if (key === "max_column_width" && number < 1) return false;
 			if (key === "default_port" && (number < 1 || number > 65_535)) return false;
 		}
+		if (key === "web_interface" && !/^(?:app|classic)$/i.test(value.replace(/['"]/g, ""))) return false;
 		if (key === "task_prefix" && !/^[a-zA-Z]+$/.test(value.replace(/['"]/g, ""))) return false;
 	}
 	return true;

@@ -598,13 +598,13 @@ export class ApiClient {
 		return response.json();
 	}
 
-	async createMilestone(title: string, description?: string, dueDate?: string): Promise<Milestone> {
+	async createMilestone(title: string, description?: string, dueDate?: string, parent?: string): Promise<Milestone> {
 		const response = await fetch(`${API_BASE}/milestones`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
 			},
-			body: JSON.stringify({ title, description, dueDate }),
+			body: JSON.stringify({ title, description, dueDate, parent }),
 		});
 		if (!response.ok) {
 			const data = await response.json().catch(() => ({}));
@@ -648,6 +648,18 @@ export class ApiClient {
 			throw new Error(data.error || "Failed to remove milestone");
 		}
 		return response.json();
+	}
+
+	/** Nest a milestone under `parent`, or make it top-level with null. */
+	async setMilestoneParent(id: string, parent: string | null): Promise<Milestone> {
+		const response = await fetch(`${API_BASE}/milestones/${encodeURIComponent(id)}/parent`, {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ parent }),
+		});
+		const data = await response.json().catch(() => ({}));
+		if (!response.ok) throw new Error(data.error || "Failed to move milestone");
+		return data.milestone;
 	}
 
 	async archiveMilestone(id: string): Promise<{ success: boolean; milestone?: Milestone | null }> {

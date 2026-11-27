@@ -13,6 +13,7 @@ import CalendarPage from './components/CalendarPage';
 import GanttPage from './components/GanttPage';
 import EisenhowerPage from './components/EisenhowerPage';
 import TerminalPage from './components/TerminalPage';
+import TickApp from './ticktick/TickApp';
 import TaskDetailsModal from './components/TaskDetailsModal';
 import InitializationScreen from './components/InitializationScreen';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -991,6 +992,21 @@ function AppContent() {
       <TaskIdIndexProvider tasks={tasks}>
       <Routes>
             <Route
+              path="/app/*"
+              element={
+                <TickApp
+                  tasks={kanbanTasks}
+                  milestones={milestoneEntities}
+                  statuses={statuses}
+                  config={config}
+                  projectName={projectName}
+                  onRefresh={refreshData}
+                  onRefreshMilestones={refreshMilestoneData}
+                  onOpenFullEditor={handleEditTask}
+                />
+              }
+            />
+            <Route
             path="/"
             element={
               <Layout
@@ -1010,7 +1026,28 @@ function AppContent() {
           >
             <Route
               index
-              element={<Navigate to={{ pathname: '/board', search: location.search }} replace state={location.state} />}
+              element={
+                // The home page follows the Interface setting; wait for config so it does not flash
+                // the wrong one. A config that failed to load falls back to the task app. Legacy
+                // `/?highlight=<task>` links always name a board card, so they keep going to the board.
+                config || loadError || new URLSearchParams(location.search).has('highlight') ? (
+                  <Navigate
+                    to={{
+                      pathname:
+                        config?.webInterface === 'classic' || new URLSearchParams(location.search).has('highlight')
+                          ? '/board'
+                          : '/app/today',
+                      search: location.search,
+                    }}
+                    replace
+                    state={location.state}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center" role="status">
+                    <LoadingSpinner size="md" text="" />
+                  </div>
+                )
+              }
             />
             <Route path="board" element={boardPage} />
             <Route path="board/:id" element={boardPage} />

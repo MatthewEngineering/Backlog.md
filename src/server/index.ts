@@ -515,6 +515,8 @@ export class BacklogServer {
 					"/gantt": spaIndexHtml,
 					"/eisenhower": spaIndexHtml,
 					"/terminal": spaIndexHtml,
+					"/app": spaIndexHtml,
+					"/app/*": spaIndexHtml,
 
 					// API Routes using Bun's native route syntax
 					"/api/tasks": {
@@ -591,6 +593,10 @@ export class BacklogServer {
 							await this.handleUpdateMilestone(req, req.params.id),
 						DELETE: async (req: Request & { params: { id: string } }) =>
 							await this.handleRemoveMilestone(req, req.params.id),
+					},
+					"/api/milestones/:id/parent": {
+						PUT: async (req: Request & { params: { id: string } }) =>
+							await this.handleSetMilestoneParent(req, req.params.id),
 					},
 					"/api/milestones/:id/archive": {
 						POST: async (req: Request & { params: { id: string } }) => await this.handleArchiveMilestone(req.params.id),
@@ -1720,6 +1726,7 @@ export class BacklogServer {
 				"maxColumnWidth",
 				"zeroPaddedIds",
 				"pointsPerMonth",
+				"webInterface",
 			] as const;
 			for (const field of editableFields) {
 				if (Object.hasOwn(input, field)) {
@@ -1747,6 +1754,9 @@ export class BacklogServer {
 							break;
 						case "pointsPerMonth":
 							valid = value === null || (Number.isInteger(value) && value >= 0);
+							break;
+						case "webInterface":
+							valid = value === "app" || value === "classic";
 							break;
 						case "autoCommit":
 						case "remoteOperations":
@@ -1891,7 +1901,7 @@ export class BacklogServer {
 
 	private async handleCreateMilestone(req: Request): Promise<Response> {
 		try {
-			const body = (await req.json()) as { title?: string; description?: string; dueDate?: unknown };
+			const body = (await req.json()) as { title?: string; description?: string; dueDate?: unknown; parent?: unknown };
 			const title = body.title?.trim();
 
 			if (!title) {
@@ -1937,7 +1947,23 @@ export class BacklogServer {
 				return Response.json({ error: "A milestone with this title or ID already exists" }, { status: 400 });
 			}
 
-			const milestone = await this.core.filesystem.createMilestone(title, body.description, dueDate.value ?? undefined);
+			let parentId: string | undefined;
+			if (typeof body.parent === "string" && body.parent.trim()) {
+				const parentKey = body.parent.trim().toLowerCase();
+				const parent = existingMilestones.find(
+					(milestone) => milestone.id.toLowerCase() === parentKey || milestone.title.toLowerCase() === parentKey,
+				);
+				if (!parent) return Response.json({ error: `Parent milestone not found: ${body.parent}` }, { status: 400 });
+				parentId = parent.id;
+			}
+
+			const milestone = await this.core.filesystem.createMilestone(
+				title,
+				body.description,
+				dueDate.value ?? undefined,
+				parentId,
+			);
+			await this.core.commitCreatedMilestone(milestone);
 			this.broadcastDataUpdated("milestones");
 			return Response.json(milestone, { status: 201 });
 		} catch (error) {
@@ -1976,6 +2002,22 @@ export class BacklogServer {
 			});
 		} catch (error) {
 			return this.milestoneMutationErrorResponse(error, "Error updating milestone");
+		}
+	}
+
+	/** Body `{ parent: string | null }`: nest the milestone under `parent`, or make it top-level. */
+	private async handleSetMilestoneParent(req: Request, milestoneId: string): Promise<Response> {
+		try {
+			const body = await this.readOptionalJsonBody(req);
+			if (!("parent" in body) || (body.parent !== null && typeof body.parent !== "string")) {
+				return Response.json({ error: "parent must be a milestone ID or null" }, { status: 400 });
+			}
+			const milestone = await this.core.setMilestoneParent(milestoneId, body.parent as string | null);
+			this.broadcastDataUpdated("milestones");
+			return Response.json({ success: true, milestone });
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "Failed to move milestone";
+			return Response.json({ error: message }, { status: 400 });
 		}
 	}
 

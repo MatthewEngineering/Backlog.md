@@ -1961,11 +1961,17 @@ export class FileSystem {
 		return `${id} - ${safeTitle}.md`;
 	}
 
-	private serializeMilestoneContent(id: string, title: string, rawContent: string, dueDate?: string): string {
+	private serializeMilestoneContent(
+		id: string,
+		title: string,
+		rawContent: string,
+		dueDate?: string,
+		parent?: string,
+	): string {
 		return `---
 id: ${id}
 title: "${title.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"
-${dueDate ? `due_date: "${dueDate}"\n` : ""}---
+${dueDate ? `due_date: "${dueDate}"\n` : ""}${parent ? `parent: ${parent}\n` : ""}---
 
 ${rawContent.trim()}
 `;
@@ -2127,7 +2133,7 @@ ${rawContent.trim()}
 		}
 	}
 
-	async createMilestone(title: string, description?: string, dueDate?: string): Promise<Milestone> {
+	async createMilestone(title: string, description?: string, dueDate?: string, parent?: string): Promise<Milestone> {
 		const normalizedDueDate = normalizeDueDate(dueDate, "Due date");
 		return await this.withCreateLock(async () => {
 			const milestonesDir = await this.getMilestonesDir();
@@ -2181,6 +2187,7 @@ ${rawContent.trim()}
 
 ${description || `Milestone: ${title}`}`,
 				normalizedDueDate,
+				parent,
 			);
 
 			const filepath = join(milestonesDir, filename);
@@ -2188,6 +2195,28 @@ ${description || `Milestone: ${title}`}`,
 
 			return parseMilestone(content);
 		});
+	}
+
+	/**
+	 * Nest an active milestone under another one (`parent` frontmatter), or make it top-level again
+	 * with `null`. The caller validates the parent; this only rewrites the file.
+	 */
+	async setMilestoneParent(
+		identifier: string,
+		parent: string | null,
+	): Promise<{ success: boolean; filePath?: string; milestone?: Milestone }> {
+		const match = await this.findMilestoneFile(identifier, "active");
+		if (!match) return { success: false };
+		const { milestone } = match;
+		const content = this.serializeMilestoneContent(
+			milestone.id,
+			milestone.title,
+			milestone.rawContent,
+			milestone.dueDate,
+			parent ?? undefined,
+		);
+		await Bun.write(match.filepath, content);
+		return { success: true, filePath: match.filepath, milestone: parseMilestone(content) };
 	}
 
 	async renameMilestone(
@@ -2231,7 +2260,13 @@ ${description || `Milestone: ${title}`}`,
 				normalizedTitle,
 			);
 			const nextDueDate = dueDate === undefined ? milestone.dueDate : normalizedDueDate;
-			const updatedContent = this.serializeMilestoneContent(milestone.id, normalizedTitle, nextRawContent, nextDueDate);
+			const updatedContent = this.serializeMilestoneContent(
+				milestone.id,
+				normalizedTitle,
+				nextRawContent,
+				nextDueDate,
+				milestone.parent,
+			);
 
 			if (sourcePath !== targetPath) {
 				if (await Bun.file(targetPath).exists()) {
@@ -2493,6 +2528,11 @@ ${description || `Milestone: ${title}`}`,
 				case "points_per_month":
 					config.pointsPerMonth = Number.parseInt(readScalar(), 10);
 					break;
+				case "web_interface": {
+					const value = readScalar().trim().toLowerCase();
+					if (value === "app" || value === "classic") config.webInterface = value;
+					break;
+				}
 				case "onStatusChange":
 				case "on_status_change":
 					config.onStatusChange = readScalar();
@@ -2534,6 +2574,7 @@ ${description || `Milestone: ${title}`}`,
 			checkActiveBranches: config.checkActiveBranches,
 			activeBranchDays: config.activeBranchDays,
 			pointsPerMonth: config.pointsPerMonth,
+			webInterface: config.webInterface,
 			onStatusChange: config.onStatusChange,
 			prefixes: config.prefixes,
 			backlogDirectory: config.backlogDirectory,

@@ -268,6 +268,8 @@ export interface Milestone {
 	id: string;
 	title: string;
 	dueDate?: string;
+	/** ID of the milestone this one is nested under (`parent` frontmatter); absent for top-level. */
+	parent?: string;
 	description: string;
 	readonly rawContent: string; // Raw markdown content without frontmatter
 }
@@ -432,6 +434,8 @@ export interface BacklogConfig {
 	activeBranchDays?: number; // How many days a branch is considered active (default: 30)
 	/** Story points the team completes in a standard month. Months planned above it get a warning. Unset means no capacity check. */
 	pointsPerMonth?: number;
+	/** Which browser UI `/` opens: the TickTick-style task app (`app`, the default) or the classic board (`classic`). */
+	webInterface?: "app" | "classic";
 	/** Project-relative backlog folder when config is stored at project root in backlog.config.yml. */
 	backlogDirectory?: string;
 	/** Global callback command to run on any task status change. Supports $TASK_ID, $OLD_STATUS, $NEW_STATUS, $TASK_TITLE variables. */
