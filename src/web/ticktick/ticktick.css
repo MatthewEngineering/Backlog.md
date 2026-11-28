@@ -1298,3 +1298,28 @@ html.dark .tt-root {
 		color: var(--tt-accent);
 	}
 }
+
+.tt-modal-note {
+	font-size: 12px;
+	line-height: 1.5;
+	color: var(--tt-text-2);
+	margin: 6px 0 0;
+}
+
+.tt-modal-note a {
+	color: var(--tt-accent);
+}
+
+.tt-convert {
+	margin: 4px 8px 8px;
+	padding: 10px 12px;
+	border-radius: 8px;
+	background: var(--tt-hover);
+	font-size: 12px;
+	line-height: 1.5;
+	color: var(--tt-text-2);
+}
+
+.tt-convert p {
+	margin: 0 0 8px;
+}

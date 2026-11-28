@@ -594,6 +594,9 @@ export class BacklogServer {
 						DELETE: async (req: Request & { params: { id: string } }) =>
 							await this.handleRemoveMilestone(req, req.params.id),
 					},
+					"/api/milestones/folders-from-projects": {
+						POST: async () => await this.handleConvertProjectsToFolders(),
+					},
 					"/api/milestones/:id/parent": {
 						PUT: async (req: Request & { params: { id: string } }) =>
 							await this.handleSetMilestoneParent(req, req.params.id),
@@ -2006,6 +2009,17 @@ export class BacklogServer {
 	}
 
 	/** Body `{ parent: string | null }`: nest the milestone under `parent`, or make it top-level. */
+	private async handleConvertProjectsToFolders(): Promise<Response> {
+		try {
+			const result = await this.core.convertProjectsToFolders();
+			this.broadcastDataUpdated("milestones");
+			return Response.json({ success: true, ...result });
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "Failed to convert projects";
+			return Response.json({ error: message }, { status: 400 });
+		}
+	}
+
 	private async handleSetMilestoneParent(req: Request, milestoneId: string): Promise<Response> {
 		try {
 			const body = await this.readOptionalJsonBody(req);

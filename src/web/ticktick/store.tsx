@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { BacklogConfig, Milestone, Task } from "../../types";
+import { projectsWithoutFolders } from "../../core/milestone-folders";
 import { getProjectValues } from "../../utils/project-config";
 import { getTerminalStatus } from "../../utils/terminal-status";
 import { apiClient, type TaskUpdateRequest } from "../lib/api";
@@ -18,7 +19,6 @@ export interface NewTaskInput {
 	priority?: string;
 	labels?: string[];
 	milestone?: string;
-	project?: string;
 	description?: string;
 }
 
@@ -47,6 +47,10 @@ interface TickStore {
 	setListParent: (milestone: Milestone, parent: string | null) => Promise<void>;
 	renameList: (milestone: Milestone, title: string, dueDate?: string | null) => Promise<void>;
 	archiveList: (milestone: Milestone) => Promise<void>;
+	/** Configured projects that have no top-level milestone folder yet (the old "areas"). */
+	unconvertedProjects: string[];
+	convertProjectsToFolders: () => Promise<void>;
+	setWebInterface: (value: "app" | "classic") => Promise<boolean>;
 	openFullEditor: (task: Task) => void;
 	notify: (message: string, undo?: () => void) => void;
 	toast: Toast | null;
@@ -167,7 +171,6 @@ export function TickProvider({
 					...(input.dueDate ? { dueDate: input.dueDate } : {}),
 					...(input.priority ? { priority: input.priority } : {}),
 					...(input.milestone ? { milestone: input.milestone } : {}),
-					...(input.project ? { project: input.project } : {}),
 					...(input.description ? { description: input.description } : {}),
 				} as Omit<Task, "id" | "createdDate">);
 				await onRefresh();
@@ -244,6 +247,34 @@ export function TickProvider({
 		[onRefreshMilestones, notify, fail],
 	);
 
+	const projects = useMemo(() => getProjectValues(config), [config]);
+	const unconvertedProjects = useMemo(() => projectsWithoutFolders(projects, milestones), [projects, milestones]);
+
+	const convertProjectsToFolders = useCallback(async () => {
+		try {
+			const result = await apiClient.convertProjectsToFolders();
+			await Promise.all([onRefreshMilestones(), onRefresh()]);
+			notify(
+				`Made ${result.createdFolders.length} folders, moved ${result.nestedMilestones.length} lists and ${result.updatedTasks.length} tasks`,
+			);
+		} catch (error) {
+			fail(error);
+		}
+	}, [onRefresh, onRefreshMilestones, notify, fail]);
+
+	const setWebInterface = useCallback(
+		async (value: "app" | "classic") => {
+			try {
+				await apiClient.updateConfig({ webInterface: value } as BacklogConfig);
+				return true;
+			} catch (error) {
+				fail(error);
+				return false;
+			}
+		},
+		[fail],
+	);
+
 	const labels = useMemo(() => {
 		const all = new Map<string, string>();
 		for (const label of config?.labels ?? []) all.set(label.toLowerCase(), label);
@@ -257,7 +288,10 @@ export function TickProvider({
 			milestones,
 			statuses,
 			priorities: config?.priorities?.length ? config.priorities : ["high", "medium", "low"],
-			projects: getProjectValues(config),
+			projects,
+			unconvertedProjects,
+			convertProjectsToFolders,
+			setWebInterface,
 			labels,
 			config,
 			projectName,
@@ -293,6 +327,10 @@ export function TickProvider({
 			setListParent,
 			renameList,
 			archiveList,
+			projects,
+			unconvertedProjects,
+			convertProjectsToFolders,
+			setWebInterface,
 			onOpenFullEditor,
 			notify,
 			toast,

@@ -126,6 +126,7 @@ import {
 	type DuplicateRepairResult,
 	previewDuplicateTaskIdRepair,
 } from "./duplicate-task-repair.ts";
+import { milestoneArea, rootMilestone } from "./milestone-folders.ts";
 import { milestoneKey } from "./milestones.ts";
 import { migrateDraftPrefixes, needsDraftPrefixMigration } from "./prefix-migration.ts";
 import {
@@ -4064,6 +4065,89 @@ export class Core {
 		if (!filePath) return;
 		await this.git.addFile(filePath);
 		await this.git.commitFiles(`backlog: Add milestone ${milestone.id}`, [filePath]);
+	}
+
+	/**
+	 * Turn configured projects into milestone folders, in one commit: each project gets a
+	 * top-level milestone of the same name (reused when one exists), every top-level milestone
+	 * whose area (`Area::` line, else its tasks' project) is a project moves inside that folder,
+	 * and tasks with a project but no milestone go into the folder. A task's `project` is then
+	 * cleared when its milestone already sits in that project's folder, so the project lives on
+	 * the milestone only. Tasks whose project disagrees with their folder keep it. Config
+	 * `projects` is left as it is.
+	 */
+	async convertProjectsToFolders(
+		autoCommit?: boolean,
+	): Promise<{ createdFolders: string[]; nestedMilestones: string[]; updatedTasks: string[] }> {
+		const config = await this.fs.loadConfig();
+		const projects = getProjectValues(config);
+		if (projects.length === 0) throw new Error("No projects are configured, so there is nothing to convert");
+		const autoCommitEnabled = await this.shouldAutoCommit(autoCommit);
+		const tasks = await this.fs.listTasks();
+		let milestones = await this.fs.listMilestones();
+		const paths: string[] = [];
+		const createdFolders: string[] = [];
+		const nestedMilestones: string[] = [];
+		const updatedTasks: string[] = [];
+
+		const folders = new Map<string, Milestone>();
+		for (const project of projects) {
+			const existing = milestones.find(
+				(milestone) => !milestone.parent && milestone.title.trim().toLowerCase() === project.toLowerCase(),
+			);
+			if (existing) {
+				folders.set(project, existing);
+				continue;
+			}
+			const created = await this.fs.createMilestone(project);
+			folders.set(project, created);
+			createdFolders.push(created.id);
+			const path = await this.fs.getMilestoneFilePath(created.id);
+			if (path) paths.push(path);
+		}
+		milestones = await this.fs.listMilestones();
+		const folderKeys = new Set([...folders.values()].map((folder) => milestoneKey(folder.id)));
+
+		for (const milestone of milestones) {
+			if (milestone.parent || folderKeys.has(milestoneKey(milestone.id))) continue;
+			const area = milestoneArea(milestone, tasks, projects);
+			const folder = area ? folders.get(area) : undefined;
+			if (!folder) continue;
+			const result = await this.fs.setMilestoneParent(milestone.id, folder.id);
+			if (result.success && result.filePath) {
+				paths.push(result.filePath);
+				nestedMilestones.push(milestone.id);
+			}
+		}
+		milestones = await this.fs.listMilestones();
+
+		for (const task of tasks) {
+			const project = projects.find((value) => value.toLowerCase() === (task.project ?? "").trim().toLowerCase());
+			if (!project) continue;
+			const folder = folders.get(project) as Milestone;
+			let changed = false;
+			if (!milestoneKey(task.milestone)) {
+				task.milestone = folder.id;
+				changed = true;
+			}
+			const root = rootMilestone(task.milestone as string, milestones);
+			if (root && milestoneKey(root.id) === milestoneKey(folder.id)) {
+				task.project = undefined;
+				changed = true;
+			}
+			if (!changed) continue;
+			const previousPath = task.filePath;
+			const filePath = await this.fs.saveTask(task);
+			paths.push(filePath);
+			if (previousPath && previousPath !== filePath) paths.push(previousPath);
+			updatedTasks.push(task.id);
+		}
+
+		if (autoCommitEnabled && paths.length > 0) {
+			await this.git.addFiles(paths);
+			await this.git.commitFiles("backlog: Turn projects into milestone folders", paths);
+		}
+		return { createdFolders, nestedMilestones, updatedTasks };
 	}
 
 	async archiveMilestone(

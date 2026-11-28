@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
+import { milestoneArea, projectsWithoutFolders, rootMilestone } from "../../core/milestone-folders";
 import type { Milestone, Task } from "../../types";
 import {
 	buildListTree,
 	descendantMilestoneIds,
 	groupByDate,
-	milestoneArea,
 	milestonePath,
 	nextSevenDayGroups,
 	parseQuickAdd,
@@ -67,9 +67,8 @@ describe("smart lists", () => {
 		expect(ids(tasksForView(tasks, { kind: "list", milestoneId: "m-1" }, context))).toEqual(["6", "7"]);
 		expect(ids(tasksForView(tasks, { kind: "list", milestoneId: "m-3" }, context))).toEqual(["6"]);
 	});
-	it("tags and areas match case-insensitively", () => {
+	it("tags match case-insensitively", () => {
 		expect(ids(tasksForView(tasks, { kind: "tag", label: "errand" }, context))).toEqual(["7"]);
-		expect(ids(tasksForView(tasks, { kind: "area", project: "career" }, context))).toEqual(["7"]);
 	});
 });
 
@@ -121,23 +120,26 @@ describe("nested lists", () => {
 			"Career",
 		);
 	});
+	it("finds a list's folder and the projects that have none yet", () => {
+		expect(rootMilestone("m-3", MILESTONES)?.id).toBe("m-1");
+		expect(rootMilestone("m-1", MILESTONES)?.id).toBe("m-1");
+		expect(projectsWithoutFolders(["career", "Money"], MILESTONES)).toEqual(["Money"]);
+	});
 });
 
 describe("parseQuickAdd", () => {
 	const context = {
 		today: TODAY,
 		milestones: MILESTONES,
-		projects: ["Money", "Body care"],
 		priorities: ["critical", "high", "medium", "low"],
 	};
 	it("reads markers and dates out of the title", () => {
-		expect(parseQuickAdd("Pay rent tomorrow !high #bills ~spring-classes @money", context)).toEqual({
+		expect(parseQuickAdd("Pay rent tomorrow !high #bills @spring-classes", context)).toEqual({
 			title: "Pay rent",
 			dueDate: "2026-11-27",
 			priority: "high",
 			labels: ["bills"],
 			milestone: "m-2",
-			project: "Money",
 		});
 	});
 	it("understands weekdays, month days and relative days", () => {
@@ -146,7 +148,7 @@ describe("parseQuickAdd", () => {
 		expect(parseQuickAdd("Taxes dec 3", context).dueDate).toBe("2026-12-03");
 		expect(parseQuickAdd("Taxes 15 jan", context).dueDate).toBe("2027-01-15");
 		expect(parseQuickAdd("Call in 3 days", context).dueDate).toBe("2026-11-29");
-		expect(parseQuickAdd("Stretch !2 @body-care", context)).toMatchObject({ priority: "medium", project: "Body care" });
+		expect(parseQuickAdd("Stretch !2 ~career", context)).toMatchObject({ priority: "medium", milestone: "m-1" });
 	});
 	it("leaves look-alikes in the title", () => {
 		expect(parseQuickAdd("Buy 2 mars bars", context)).toEqual({ title: "Buy 2 mars bars", labels: [] });

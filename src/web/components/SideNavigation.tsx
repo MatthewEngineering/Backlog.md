@@ -213,7 +213,6 @@ const Icons = {
 
 // Planning and tool pages, shown after Statistics in both the expanded and collapsed sidebar.
 const PLANNING_LINKS = [
-	{ to: '/app/today', label: 'Task app (Today)', Icon: Icons.Calendar },
 	{ to: '/calendar', label: 'Calendar', Icon: Icons.Calendar },
 	{ to: '/gantt', label: 'Gantt', Icon: Icons.Gantt },
 	{ to: '/eisenhower', label: 'Eisenhower', Icon: Icons.Matrix },

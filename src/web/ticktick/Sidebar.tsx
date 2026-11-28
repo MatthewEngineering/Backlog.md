@@ -15,7 +15,7 @@ import {
 	IconTag,
 	IconWeek,
 } from "./icons";
-import { buildListTree, type ListNode, milestoneArea, tasksForView, type ViewSpec } from "./model";
+import { buildListTree, type ListNode, tasksForView, type ViewSpec } from "./model";
 import { Popover, taskDropHandlers } from "./parts";
 import { useTick } from "./store";
 
@@ -33,8 +33,6 @@ export function viewPath(view: ViewSpec): string {
 	switch (view.kind) {
 		case "list":
 			return `/app/list/${encodeURIComponent(view.milestoneId)}`;
-		case "area":
-			return `/app/area/${encodeURIComponent(view.project)}`;
 		case "tag":
 			return `/app/tag/${encodeURIComponent(view.label)}`;
 		case "search":
@@ -59,7 +57,9 @@ type ListDialog =
 
 export default function Sidebar({ current, onNavigate }: SidebarProps) {
 	const store = useTick();
-	const { tasks, milestones, statuses, today, projects, labels, isDone, updateTask, setListParent } = store;
+	const { tasks, milestones, statuses, today, labels, isDone, updateTask, setListParent, unconvertedProjects, convertProjectsToFolders } =
+		store;
+	const [converting, setConverting] = useState(false);
 	const [collapsed, setCollapsed] = useState<Set<string>>(() => {
 		try {
 			return new Set(JSON.parse(localStorage.getItem("tt-collapsed") ?? "[]") as string[]);
@@ -87,18 +87,6 @@ export default function Sidebar({ current, onNavigate }: SidebarProps) {
 	const openCount = (view: ViewSpec) => tasksForView(tasks, view, context).filter((task) => !isDone(task)).length;
 
 	const tree = useMemo(() => buildListTree(milestones), [milestones]);
-	// Top-level lists go into their area's folder; nested lists follow their parent.
-	const { byArea, unfiled } = useMemo(() => {
-		const byArea = new Map<string, ListNode[]>();
-		const unfiled: ListNode[] = [];
-		for (const node of tree) {
-			const area = milestoneArea(node.milestone, tasks, projects);
-			if (area) byArea.set(area, [...(byArea.get(area) ?? []), node]);
-			else unfiled.push(node);
-		}
-		return { byArea, unfiled };
-	}, [tree, tasks, projects]);
-
 	const smart: Array<{ view: ViewSpec; label: string; icon: ReactNode; onDrop?: (task: Task) => void }> = [
 		{
 			view: { kind: "today" },
@@ -190,8 +178,8 @@ export default function Sidebar({ current, onNavigate }: SidebarProps) {
 					>
 						<IconCaret />
 					</span>
-					<span className="tt-nav-icon" style={{ color: listColor(milestone.id) }}>
-						<IconList size={16} />
+					<span className="tt-nav-icon" style={hasChildren ? undefined : { color: listColor(milestone.id) }}>
+						{hasChildren ? <IconFolder size={16} /> : <IconList size={16} />}
 					</span>
 					<span className="tt-nav-label" title={milestone.title}>
 						{milestone.title}
@@ -261,48 +249,31 @@ export default function Sidebar({ current, onNavigate }: SidebarProps) {
 					</div>
 					{!collapsed.has("section:lists") && (
 						<>
-							{projects.map((project) => {
-								const view: ViewSpec = { kind: "area", project };
-								const key = `area:${project}`;
-								const lists = byArea.get(project) ?? [];
-								const isCollapsed = collapsed.has(key);
-								return (
-									<div key={project}>
-										<Link
-											to={viewPath(view)}
-											onClick={onNavigate}
-											className={`tt-nav-item ${sameView(current, view) ? "is-active" : ""}`}
-											{...taskDropHandlers(
-												(task) => void updateTask(task, { project }, { project }),
-												tasks,
-											)}
-										>
-											<span
-												className={`tt-caret ${isCollapsed ? "" : "is-open"}`}
-												style={{ visibility: lists.length ? "visible" : "hidden" }}
-												onClick={(event) => {
-													event.preventDefault();
-													event.stopPropagation();
-													toggle(key);
-												}}
-											>
-												<IconCaret />
-											</span>
-											<span className="tt-nav-icon">
-												<IconFolder size={16} />
-											</span>
-											<span className="tt-nav-label">{project}</span>
-											<span className="tt-nav-count">{openCount(view) || ""}</span>
-										</Link>
-										{!isCollapsed &&
-											lists.map((node) => renderList({ ...node, depth: node.depth + 1, children: bump(node.children) }))}
-									</div>
-								);
-							})}
-							{unfiled.map(renderList)}
+							{unconvertedProjects.length > 0 && (
+								<div className="tt-convert">
+									<p>
+										Make your {unconvertedProjects.length === 1 ? "project" : `${unconvertedProjects.length} projects`} (
+										{unconvertedProjects.join(", ")}) into folders? Each becomes a top-level folder, the lists in that
+										area move inside it, and tasks drop their own project field.
+									</p>
+									<button
+										type="button"
+										className="tt-btn is-primary"
+										disabled={converting}
+										onClick={async () => {
+											setConverting(true);
+											await convertProjectsToFolders();
+											setConverting(false);
+										}}
+									>
+										{converting ? "Converting…" : "Make folders"}
+									</button>
+								</div>
+							)}
+							{tree.map(renderList)}
 							{milestones.length === 0 && (
 								<div className="tt-empty-group" style={{ paddingLeft: 12 }}>
-									Lists are milestones. Add one with +, nest it by dragging it onto another.
+									Lists are milestones. Add one with +; drag a list onto another to put it inside, and a list with lists inside is a folder.
 								</div>
 							)}
 						</>
@@ -361,11 +332,6 @@ export default function Sidebar({ current, onNavigate }: SidebarProps) {
 	);
 }
 
-/** Shift a subtree one level deeper (lists shown inside an area folder). */
-function bump(nodes: ListNode[]): ListNode[] {
-	return nodes.map((node) => ({ ...node, depth: node.depth + 1, children: bump(node.children) }));
-}
-
 function ListMenu({
 	milestone,
 	onClose,
@@ -387,7 +353,7 @@ function ListMenu({
 	return (
 		<Popover onClose={onClose} style={{ left: 40, top: 32 }}>
 			<button type="button" className="tt-menu-item" onClick={run(onAddChild)}>
-				Add sub-list
+				Add list inside
 			</button>
 			<button type="button" className="tt-menu-item" onClick={run(onEdit)}>
 				Edit

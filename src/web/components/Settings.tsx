@@ -301,24 +301,6 @@ const Settings: React.FC = () => {
 						<h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Web UI Settings</h2>
 						<div className="space-y-4">
 							<div>
-								<label htmlFor="webInterface" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-									Interface
-								</label>
-								<select
-									id="webInterface"
-									value={config.webInterface ?? 'app'}
-									onChange={(e) => handleInputChange('webInterface', e.target.value)}
-									className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 transition-colors duration-200"
-								>
-									<option value="app">Task app (TickTick-style: Today, lists, matrix)</option>
-									<option value="classic">Classic Backlog.md (board)</option>
-								</select>
-								<p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-									Which interface opens at the home page. Both stay reachable from each other.
-								</p>
-							</div>
-
-							<div>
 								<label htmlFor="defaultPort" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 									Default Port
 								</label>

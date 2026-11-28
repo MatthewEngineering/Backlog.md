@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-11-26T09:02:17Z'
-updated_date: '2026-11-26T10:09:46Z'
+updated_date: '2026-11-28T05:33:40Z'
 labels:
   - web
 dependencies: []
@@ -50,4 +50,6 @@ Drag and drop exercised with synthetic DragEvents (task onto a list, a matrix qu
 Interface toggle: BacklogConfig.webInterface ("app" | "classic"), read/written as web_interface, validated by the config watcher and PUT /api/config, CLI config get/set/list; the index route waits for config before redirecting. Verified: PUT classic writes web_interface: "classic" and / lands on the Kanban board; an invalid value is rejected (400); config tests (72) pass.
 
 Full suite (bun test): 3636 pass / 242 fail under load. Every failing file rerun alone with --timeout=10000 passes except scripts/update-nix.test.cjs (needs Node >= 26.12.1; this machine has 24.11.1, as in BACK-817). The one real break was mine: web-task-detail-deeplink expected / to open the board. Fixed by keeping legacy /?highlight= links on the board and marking that suite classic (webInterface: "classic"); 32/32 pass.
+
+Follow-up (2026-11-28): classic pages are back to upstream (the Interface select and the sidebar link were removed). The interface toggle now lives in the app's own Settings dialog (rail gear). Projects are dropped from the app: a list with lists inside is a folder, and POST /api/milestones/folders-from-projects (Core.convertProjectsToFolders, src/core/milestone-folders.ts) turns configured projects into top-level milestone folders in one commit. It nests each area's milestones (by Area:: line or majority task project), files project-only tasks into the folder, and clears task.project where the folder already says it. Config projects are left alone. Quick add: @List is an alias for ~List.
 <!-- SECTION:NOTES:END -->

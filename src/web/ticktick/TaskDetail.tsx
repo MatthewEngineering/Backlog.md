@@ -61,7 +61,7 @@ function useFullTask(base: Task): Task {
 
 function TaskDetailBody({ task: base, onClose }: { task: Task; onClose: () => void }) {
 	const task = useFullTask(base);
-	const { milestones, statuses, projects, today, updateTask, archiveTask, openFullEditor } = useTick();
+	const { milestones, statuses, today, updateTask, archiveTask, openFullEditor } = useTick();
 	const readOnly = isReadOnlyTask(task);
 	const [title, setTitle] = useState(task.title);
 	const [description, setDescription] = useState(task.description ?? "");
@@ -257,27 +257,6 @@ function TaskDetailBody({ task: base, onClose }: { task: Task; onClose: () => vo
 							))}
 						</select>
 					</div>
-					{projects.length > 0 && (
-						<div className="tt-field-row">
-							<span className="tt-field-label">Area</span>
-							<select
-								className="tt-select"
-								value={task.project ?? ""}
-								disabled={readOnly}
-								onChange={(event) => {
-									const project = event.target.value || null;
-									void updateTask(task, { project }, { project: project ?? undefined });
-								}}
-							>
-								<option value="">None</option>
-								{projects.map((project) => (
-									<option key={project} value={project}>
-										{project}
-									</option>
-								))}
-							</select>
-						</div>
-					)}
 					<div className="tt-field-row">
 						<span className="tt-field-label">Status</span>
 						<select

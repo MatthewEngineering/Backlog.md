@@ -24,10 +24,11 @@ import TaskListView from "./TaskListView";
 
 /**
  * The TickTick-style task app, served at /app. Smart lists (Today, Next 7 Days, Inbox), nested
- * lists (milestones with `parent`), area folders (config projects), tags, an Eisenhower matrix, a
- * calendar and a Pomodoro timer, all over the same backlog records the classic pages edit.
+ * lists (milestones with `parent`; a list with lists inside is a folder), tags, an Eisenhower
+ * matrix, a calendar and a Pomodoro timer, all over the same backlog records the classic pages
+ * edit. Everything this fork adds lives here; the classic pages stay as upstream ships them.
  *
- * URL scheme: /app/<today|next7|inbox|all|completed>, /app/list/<milestone>, /app/area/<project>,
+ * URL scheme: /app/<today|next7|inbox|all|completed>, /app/list/<milestone>,
  * /app/tag/<label>, /app/search?q=, /app/matrix, /app/calendar, /app/focus; `?task=<id>` opens a
  * task in the detail pane.
  */
@@ -53,9 +54,6 @@ function parseScreen(pathname: string, search: string): Screen {
 		case "list":
 			if (arg) return { mode: "tasks", view: { kind: "list", milestoneId: arg } };
 			break;
-		case "area":
-			if (arg) return { mode: "tasks", view: { kind: "area", project: arg } };
-			break;
 		case "tag":
 			if (arg) return { mode: "tasks", view: { kind: "tag", label: arg } };
 			break;
@@ -79,8 +77,6 @@ function viewTitle(view: ViewSpec, milestones: Milestone[]): string {
 			return "Completed";
 		case "list":
 			return milestonePath(view.milestoneId, milestones);
-		case "area":
-			return view.project;
 		case "tag":
 			return `#${view.label}`;
 		case "search":
@@ -118,6 +114,7 @@ function TickShell() {
 	const selected = taskParam ? (tasks.find((task) => task.id.toLowerCase() === taskParam) ?? null) : null;
 	const selectedId = selected?.id ?? null;
 	const [drawerOpen, setDrawerOpen] = useState(false);
+	const [settingsOpen, setSettingsOpen] = useState(false);
 	const quickAddRef = useRef<HTMLInputElement | null>(null);
 	const searchRef = useRef<HTMLInputElement | null>(null);
 	// The task screen to come back to from the rail's Tasks button.
@@ -222,10 +219,10 @@ function TickShell() {
 					<IconBoard size={20} />
 					<span className="tt-tooltip">Classic Backlog (board, milestones, docs)</span>
 				</Link>
-				<Link to="/settings" className="tt-rail-btn" aria-label="Settings">
+				<button type="button" className="tt-rail-btn" aria-label="Settings" onClick={() => setSettingsOpen(true)}>
 					<IconSettings size={20} />
 					<span className="tt-tooltip">Settings</span>
-				</Link>
+				</button>
 			</nav>
 			{showSidebar && <Sidebar current={currentView} onNavigate={() => setDrawerOpen(false)} />}
 			<div className="tt-backdrop" onClick={() => setDrawerOpen(false)} />
@@ -240,6 +237,7 @@ function TickShell() {
 					</Link>
 				))}
 			</nav>
+			{settingsOpen && <AppSettings onClose={() => setSettingsOpen(false)} />}
 			{toast && (
 				<div className="tt-toast" role="status">
 					<span>{toast.message}</span>
@@ -256,6 +254,75 @@ function TickShell() {
 					)}
 				</div>
 			)}
+		</div>
+	);
+}
+
+/** The task app's own settings: which interface opens at the home page, and project folders. */
+function AppSettings({ onClose }: { onClose: () => void }) {
+	const { config, setWebInterface, unconvertedProjects, convertProjectsToFolders } = useTick();
+	const navigate = useNavigate();
+	const [busy, setBusy] = useState(false);
+	const current = config?.webInterface === "classic" ? "classic" : "app";
+	return (
+		<div className="tt-modal-backdrop" onMouseDown={onClose}>
+			<div className="tt-modal" role="dialog" aria-label="Settings" onMouseDown={(event) => event.stopPropagation()}>
+				<h2>Settings</h2>
+				<label htmlFor="tt-interface">Interface at the home page</label>
+				<select
+					id="tt-interface"
+					className="tt-input"
+					value={current}
+					disabled={busy}
+					onChange={async (event) => {
+						const value = event.target.value as "app" | "classic";
+						setBusy(true);
+						const saved = await setWebInterface(value);
+						setBusy(false);
+						if (saved && value === "classic") navigate("/board");
+					}}
+				>
+					<option value="app">Task app (this one)</option>
+					<option value="classic">Classic Backlog.md</option>
+				</select>
+				<p className="tt-modal-note">
+					Classic is Backlog.md exactly as upstream ships it. To come back, open <code>/app</code> and switch here.
+				</p>
+				{unconvertedProjects.length > 0 && (
+					<>
+						<label>Projects</label>
+						<p className="tt-modal-note">
+							{unconvertedProjects.join(", ")} {unconvertedProjects.length === 1 ? "is a project" : "are projects"} without a
+							folder. Making folders turns each into a top-level list, moves that area's lists inside it, and takes the
+							project off the tasks.
+						</p>
+						<button
+							type="button"
+							className="tt-btn"
+							disabled={busy}
+							onClick={async () => {
+								setBusy(true);
+								await convertProjectsToFolders();
+								setBusy(false);
+							}}
+						>
+							Make folders
+						</button>
+					</>
+				)}
+				<p className="tt-modal-note">
+					Board columns, statuses and other project settings are on the{" "}
+					<Link to="/settings" onClick={onClose}>
+						classic settings page
+					</Link>
+					.
+				</p>
+				<div className="tt-modal-actions">
+					<button type="button" className="tt-btn is-primary" onClick={onClose}>
+						Done
+					</button>
+				</div>
+			</div>
 		</div>
 	);
 }

@@ -48,12 +48,12 @@ export const QuickAdd = forwardRef<HTMLInputElement, QuickAddProps>(function Qui
 	{ placeholder, defaults, onCreated },
 	ref,
 ) {
-	const { today, milestones, projects, priorities, createTask } = useTick();
+	const { today, milestones, priorities, createTask } = useTick();
 	const [text, setText] = useState("");
 	const [busy, setBusy] = useState(false);
 	const parsed = useMemo(
-		() => parseQuickAdd(text, { today, milestones, projects, priorities }),
-		[text, today, milestones, projects, priorities],
+		() => parseQuickAdd(text, { today, milestones, priorities }),
+		[text, today, milestones, priorities],
 	);
 	const submit = async () => {
 		if (!parsed.title || busy) return;
@@ -64,7 +64,6 @@ export const QuickAdd = forwardRef<HTMLInputElement, QuickAddProps>(function Qui
 			dueDate: parsed.dueDate ?? defaults.dueDate,
 			priority: parsed.priority ?? defaults.priority,
 			milestone: parsed.milestone ?? defaults.milestone,
-			project: parsed.project ?? defaults.project,
 			labels: [...(defaults.labels ?? []), ...parsed.labels],
 		});
 		setBusy(false);
@@ -77,7 +76,6 @@ export const QuickAdd = forwardRef<HTMLInputElement, QuickAddProps>(function Qui
 		parsed.dueDate && `📅 ${parsed.dueDate}`,
 		parsed.priority && `⚑ ${parsed.priority}`,
 		parsed.milestone && `☰ ${milestonePath(parsed.milestone, milestones)}`,
-		parsed.project && `▣ ${parsed.project}`,
 		...parsed.labels.map((label) => `# ${label}`),
 	].filter(Boolean) as string[];
 	return (
@@ -190,8 +188,6 @@ export default function TaskListView({
 				return { dueDate: today };
 			case "list":
 				return { milestone: view.milestoneId };
-			case "area":
-				return { project: view.project };
 			case "tag":
 				return { labels: [view.label] };
 			default:

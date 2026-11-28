@@ -19,6 +19,7 @@ beforeEach(async () => {
 		statuses: ["To Do", "Done"],
 		labels: [],
 		milestones: [],
+		projects: ["Money", "Career"],
 		dateFormat: "YYYY-MM-DD",
 		remoteOperations: false,
 		checkActiveBranches: false,
@@ -91,5 +92,47 @@ describe("nested milestones", () => {
 		expect((await create({ title: "Orphan", parent: "m-404" })).status).toBe(400);
 		const a = (await (await create({ title: "A" })).json()) as Milestone;
 		expect((await setParent(a.id, "m-404")).status).toBe(400);
+	});
+});
+
+describe("projects into folders", () => {
+	it("makes a folder per project, nests that area's lists and moves project off tasks", async () => {
+		const bills = (await (await create({ title: "Bills", description: "- Area:: Money" })).json()) as Milestone;
+		const post = async (body: object) =>
+			(await (
+				await fetch(`${base}/tasks`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(body),
+				})
+			).json()) as { id: string };
+		const loose = await post({ title: "Pay rent", project: "Money" });
+		const inList = await post({ title: "Water bill", project: "Money", milestone: bills.id });
+		const mismatch = await post({ title: "Résumé", project: "Career", milestone: bills.id });
+
+		const response = await fetch(`${base}/milestones/folders-from-projects`, { method: "POST" });
+		if (response.status !== 200) throw new Error(await response.text());
+		const result = (await response.json()) as { createdFolders: string[]; nestedMilestones: string[] };
+		expect(result.createdFolders).toHaveLength(2);
+		expect(result.nestedMilestones).toEqual([bills.id]);
+
+		const milestones = await list();
+		const money = milestones.find((milestone) => milestone.title === "Money");
+		expect(milestones.find((milestone) => milestone.id === bills.id)?.parent).toBe(money?.id);
+
+		const fetchTask = async (id: string) =>
+			(await (await fetch(`${base}/task/${id}`)).json()) as { milestone?: string; project?: string };
+		expect(await fetchTask(loose.id)).toMatchObject({ milestone: money?.id });
+		expect((await fetchTask(loose.id)).project).toBeUndefined();
+		expect((await fetchTask(inList.id)).project).toBeUndefined();
+		expect((await fetchTask(mismatch.id)).project).toBe("Career");
+
+		// Running it again finds the folders and changes nothing.
+		const again = (await (await fetch(`${base}/milestones/folders-from-projects`, { method: "POST" })).json()) as {
+			createdFolders: string[];
+			updatedTasks: string[];
+		};
+		expect(again.createdFolders).toEqual([]);
+		expect(again.updatedTasks).toEqual([]);
 	});
 });

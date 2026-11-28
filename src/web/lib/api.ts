@@ -650,6 +650,18 @@ export class ApiClient {
 		return response.json();
 	}
 
+	/** Turn configured projects into top-level milestone folders (one commit on the server). */
+	async convertProjectsToFolders(): Promise<{
+		createdFolders: string[];
+		nestedMilestones: string[];
+		updatedTasks: string[];
+	}> {
+		const response = await fetch(`${API_BASE}/milestones/folders-from-projects`, { method: "POST" });
+		const data = await response.json().catch(() => ({}));
+		if (!response.ok) throw new Error(data.error || "Failed to convert projects");
+		return data;
+	}
+
 	/** Nest a milestone under `parent`, or make it top-level with null. */
 	async setMilestoneParent(id: string, parent: string | null): Promise<Milestone> {
 		const response = await fetch(`${API_BASE}/milestones/${encodeURIComponent(id)}/parent`, {

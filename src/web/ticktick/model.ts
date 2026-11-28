@@ -48,7 +48,7 @@ export function todayKey(now: Date = new Date()): DayKey {
 // ---------------------------------------------------------------------------------------------
 // Views
 
-/** Where the main column is pointed. Smart lists are fixed; the rest name a list, area or tag. */
+/** Where the main column is pointed. Smart lists are fixed; the rest name a list (or folder) or tag. */
 export type ViewSpec =
 	| { kind: "today" }
 	| { kind: "next7" }
@@ -56,7 +56,6 @@ export type ViewSpec =
 	| { kind: "all" }
 	| { kind: "completed" }
 	| { kind: "list"; milestoneId: string }
-	| { kind: "area"; project: string }
 	| { kind: "tag"; label: string }
 	| { kind: "search"; query: string };
 
@@ -67,8 +66,8 @@ export interface ViewContext {
 }
 
 /**
- * The tasks a view shows. Today, Next 7 Days and All show open tasks; Inbox, a list, an area, a
- * tag and a search show open and done tasks so the caller can fold the done ones into "Completed".
+ * The tasks a view shows. Today, Next 7 Days and All show open tasks; Inbox, a list, a tag and a
+ * search show open and done tasks so the caller can fold the done ones into "Completed".
  * A list includes the tasks of the lists nested under it.
  */
 export function tasksForView(tasks: readonly Task[], view: ViewSpec, context: ViewContext): Task[] {
@@ -89,8 +88,6 @@ export function tasksForView(tasks: readonly Task[], view: ViewSpec, context: Vi
 			const keys = new Set(descendantMilestoneIds(view.milestoneId, context.milestones).map(milestoneKey));
 			return tasks.filter((task) => keys.has(milestoneKey(task.milestone)));
 		}
-		case "area":
-			return tasks.filter((task) => (task.project ?? "").toLowerCase() === view.project.toLowerCase());
 		case "tag":
 			return tasks.filter((task) => task.labels.some((label) => label.toLowerCase() === view.label.toLowerCase()));
 		case "search": {
@@ -274,45 +271,12 @@ export function milestonePath(milestoneId: string | undefined, milestones: reado
 	return parts.join(" / ") || milestoneId;
 }
 
-/**
- * The area (configured project) a milestone belongs to, which places it in that area's folder:
- * an `Area:: <name>` line in its body (this repo's milestone convention), otherwise the project
- * most of its tasks carry. Undefined when neither names a configured project.
- */
-export function milestoneArea(
-	milestone: Milestone,
-	tasks: readonly Task[],
-	projects: readonly string[],
-): string | undefined {
-	const canonical = (value: string | undefined) =>
-		projects.find((project) => project.toLowerCase() === (value ?? "").trim().toLowerCase());
-	const declared = milestone.rawContent.match(/^\s*[-*]?\s*Area::\s*(.+?)\s*$/im)?.[1];
-	const fromBody = canonical(declared);
-	if (fromBody) return fromBody;
-	const counts = new Map<string, number>();
-	for (const task of tasks) {
-		if (milestoneKey(task.milestone) !== milestoneKey(milestone.id)) continue;
-		const project = canonical(task.project);
-		if (project) counts.set(project, (counts.get(project) ?? 0) + 1);
-	}
-	let best: string | undefined;
-	let bestCount = 0;
-	for (const [project, count] of counts) {
-		if (count > bestCount) {
-			best = project;
-			bestCount = count;
-		}
-	}
-	return best;
-}
-
 // ---------------------------------------------------------------------------------------------
 // Quick add
 
 export interface QuickAddContext {
 	today: DayKey;
 	milestones: readonly Milestone[];
-	projects: readonly string[];
 	priorities: readonly string[];
 }
 
@@ -322,7 +286,6 @@ export interface QuickAddResult {
 	priority?: string;
 	labels: string[];
 	milestone?: string;
-	project?: string;
 }
 
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
@@ -358,7 +321,7 @@ function monthDay(today: DayKey, month: number, day: number): DayKey | undefined
  * - dates: `today`, `tod`, `tomorrow`, `tmr`, `next week`, `mon`..`sunday`, `in 3 days`,
  *   `2026-12-01`, `dec 3`, `3 dec`
  * - `!high` / `!1` (high) `!2` (medium) `!3` (low), or any configured priority by name
- * - `#tag` for labels, `~List` for a milestone (title or ID, spaces as `-`), `@Area` for a project
+ * - `#tag` for labels, `~List` (or `@List`) for a milestone or folder (title or ID, spaces as `-`)
  * Unrecognised markers stay in the title.
  */
 export function parseQuickAdd(input: string, context: QuickAddContext): QuickAddResult {
@@ -374,20 +337,13 @@ export function parseQuickAdd(input: string, context: QuickAddContext): QuickAdd
 		result.labels.push(match[1] as string);
 		text = text.replace(match[0], " ");
 	}
-	take(/\s~(\S+)/, (match) => {
+	take(/\s[~@](\S+)/, (match) => {
 		const wanted = compact(match[1] as string);
 		const milestone = context.milestones.find(
 			(candidate) => compact(candidate.id) === wanted || compact(candidate.title) === wanted,
 		);
 		if (!milestone) return false;
 		result.milestone = milestone.id;
-		return true;
-	});
-	take(/\s@(\S+)/, (match) => {
-		const wanted = compact(match[1] as string);
-		const project = context.projects.find((candidate) => compact(candidate) === wanted);
-		if (!project) return false;
-		result.project = project;
 		return true;
 	});
 	take(/\s!(\S+)/, (match) => {
