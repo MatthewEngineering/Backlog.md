@@ -146,7 +146,7 @@ export default function MilestonesView({
 				<button type="button" className="tt-icon-btn tt-menu-toggle" aria-label="Open sidebar" onClick={onToggleSidebar}>
 					<IconMenu />
 				</button>
-				<h1 className="tt-main-title">
+				<h1 className="tt-main-title tt-ms-title">
 					Milestones<span className="tt-main-sub">{filtered.length}</span>
 				</h1>
 				<div className="tt-seg" role="group" aria-label="Layout">
@@ -163,8 +163,13 @@ export default function MilestonesView({
 						</Link>
 					))}
 				</div>
-				<button type="button" className="tt-btn is-primary" onClick={() => setDialog({ mode: "create" })}>
-					<IconPlus size={14} /> Milestone
+				<button
+					type="button"
+					className="tt-btn is-primary tt-ms-add"
+					aria-label="Add milestone"
+					onClick={() => setDialog({ mode: "create" })}
+				>
+					<IconPlus size={14} /> <span className="tt-ms-add-label">Milestone</span>
 				</button>
 			</header>
 			<div className="tt-ms-toolbar">

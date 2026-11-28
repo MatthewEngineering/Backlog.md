@@ -117,6 +117,11 @@ const Icons = {
 			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
 		</svg>
 	),
+	SwitchInterface: () => (
+		<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+		</svg>
+	),
 	DocumentInfo: () => (
 		<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1045,12 +1050,13 @@ const SideNavigation = memo(function SideNavigation({
 			</nav>
 			
 			{/* Settings Button - Bottom Left */}
-			<div className={`border-t border-gray-200 dark:border-gray-700 ${isCollapsed ? 'px-2 py-2' : 'px-4 py-4'}`}>
+			<div className={`border-t border-gray-200 dark:border-gray-700 ${isCollapsed ? 'px-2 py-2 space-y-1' : 'px-4 py-4 flex items-center gap-1'}`}>
+				{isCollapsed && <SwitchToAppButton collapsed />}
 				{!isCollapsed ? (
 					<NavLink
 						to="/settings"
 						className={({ isActive }) =>
-							`flex items-center px-3 py-2 rounded-lg transition-colors duration-200 ${
+							`flex-1 min-w-0 flex items-center px-3 py-2 rounded-lg transition-colors duration-200 ${
 								isActive
 									? 'bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 font-medium'
 									: 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
@@ -1060,7 +1066,7 @@ const SideNavigation = memo(function SideNavigation({
 						<Icons.DocumentSettings />
 						<span className="ml-3 text-sm font-medium">Settings</span>
 						{version && (
-							<span className="ml-auto text-xs text-gray-500 dark:text-gray-400">Backlog.md - v{version}</span>
+							<span className="ml-auto pl-2 truncate text-xs text-gray-500 dark:text-gray-400">v{version}</span>
 						)}
 					</NavLink>
 				) : (
@@ -1081,6 +1087,7 @@ const SideNavigation = memo(function SideNavigation({
 						</div>
 					</NavLink>
 				)}
+				{!isCollapsed && <SwitchToAppButton />}
 			</div>
 			
 			<Tooltip id="sidebar-tooltip" place="right" />
@@ -1088,5 +1095,39 @@ const SideNavigation = memo(function SideNavigation({
 		</ErrorBoundary>
 	);
 });
+
+/**
+ * Switches to the task app at /app and makes it the home page. A full page load follows so the
+ * home page redirect reads the saved setting.
+ */
+function SwitchToAppButton({ collapsed = false }: { collapsed?: boolean }) {
+	const [busy, setBusy] = useState(false);
+	const onClick = async () => {
+		setBusy(true);
+		try {
+			await apiClient.updateConfig({ webInterface: 'app' } as Parameters<typeof apiClient.updateConfig>[0]);
+		} catch {
+			// The app still opens; only the home page setting failed to save.
+		}
+		window.location.assign('/app/today');
+	};
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			disabled={busy}
+			aria-label="Switch to the task app"
+			data-tooltip-id="sidebar-tooltip"
+			data-tooltip-content="Switch to the task app"
+			className={`flex items-center justify-center rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors duration-200 disabled:opacity-50 ${
+				collapsed ? 'w-full p-3' : 'p-2 shrink-0'
+			}`}
+		>
+			<div className="w-6 h-6 flex items-center justify-center">
+				<Icons.SwitchInterface />
+			</div>
+		</button>
+	);
+}
 
 export default SideNavigation;

@@ -1960,3 +1960,88 @@ html.dark .tt-root {
 		display: none;
 	}
 }
+
+/* The rail's theme, switch and settings buttons, shown in the drawer on phones. */
+.tt-sidebar-foot {
+	display: none;
+}
+
+@media (max-width: 767px) {
+	.tt-sidebar-foot {
+		display: flex;
+		gap: 4px;
+		padding: 8px;
+		padding-bottom: max(8px, env(safe-area-inset-bottom));
+		border-top: 1px solid var(--tt-border);
+	}
+
+	.tt-foot-btn {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
+		padding: 6px 4px;
+		border-radius: 6px;
+		font-size: 11px;
+		color: var(--tt-text-2);
+	}
+
+	.tt-foot-btn:hover,
+	.tt-foot-btn:active {
+		background: var(--tt-hover);
+		color: var(--tt-text);
+	}
+
+	/* Titles get the row; one label chip is too much on a phone. */
+	.tt-task-meta .tt-tag {
+		display: none;
+	}
+
+	/* The tab bar already says where you are. */
+	.tt-ms-title {
+		display: none;
+	}
+
+	.tt-main-head .tt-seg {
+		margin-right: auto;
+	}
+
+	.tt-ms-add {
+		flex: none;
+		align-self: center;
+		width: 32px;
+		height: 32px;
+		padding: 0;
+		justify-content: center;
+	}
+
+	.tt-ms-add-label {
+		display: none;
+	}
+
+	.tt-ms-toolbar {
+		padding: 0 16px 10px;
+	}
+
+	.tt-ms-toolbar .tt-select {
+		max-width: none;
+		min-width: 0;
+		flex: 1 1 140px;
+	}
+
+	.tt-ms-table th:nth-child(2),
+	.tt-ms-table td:nth-child(2),
+	.tt-ms-table .tt-ms-progress {
+		display: none;
+	}
+
+	.tt-gantt {
+		--tt-gantt-left: 170px;
+	}
+
+	.tt-ms-stat {
+		min-width: 0;
+		flex: 1 1 140px;
+	}
+}

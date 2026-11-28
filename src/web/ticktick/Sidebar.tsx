@@ -50,13 +50,15 @@ function sameView(a: ViewSpec | null, b: ViewSpec): boolean {
 interface SidebarProps {
 	current: ViewSpec | null;
 	onNavigate?: () => void;
+	/** Shown at the bottom on phones, where the rail (theme, switch, settings) is hidden. */
+	footer?: ReactNode;
 }
 
 export type ListDialog =
 	| { mode: "create"; parent?: string }
 	| { mode: "edit"; milestone: Milestone };
 
-export default function Sidebar({ current, onNavigate }: SidebarProps) {
+export default function Sidebar({ current, onNavigate, footer }: SidebarProps) {
 	const store = useTick();
 	const { tasks, milestones, statuses, today, labels, isDone, updateTask, setListParent, unconvertedProjects, convertProjectsToFolders } =
 		store;
@@ -340,6 +342,7 @@ export default function Sidebar({ current, onNavigate }: SidebarProps) {
 					</Link>
 				</div>
 			</div>
+			{footer && <div className="tt-sidebar-foot">{footer}</div>}
 			{dialog && <ListDialogView dialog={dialog} onClose={() => setDialog(null)} />}
 		</nav>
 	);

@@ -144,8 +144,13 @@ export default function TickApp(props: TickAppProps) {
 }
 
 function TickShell() {
-	const { tasks, milestones, projectName, toast, dismissToast } = useTick();
+	const { tasks, milestones, projectName, toast, dismissToast, setWebInterface } = useTick();
 	const { theme, toggleTheme } = useTheme();
+	const switchToClassic = async () => {
+		await setWebInterface("classic");
+		// A full load so the classic app reads the saved setting at the home page.
+		window.location.assign("/board");
+	};
 	const location = useLocation();
 	const navigate = useNavigate();
 	const screen = useMemo(() => parseScreen(location.pathname, location.search), [location.pathname, location.search]);
@@ -271,16 +276,49 @@ function TickShell() {
 					{theme === "dark" ? <IconSunny size={20} /> : <IconMoon size={20} />}
 					<span className="tt-tooltip">{theme === "dark" ? "Light theme" : "Dark theme"}</span>
 				</button>
-				<Link to="/board" className="tt-rail-btn" aria-label="Classic Backlog views">
+				<button
+					type="button"
+					className="tt-rail-btn"
+					aria-label="Switch to classic Backlog.md"
+					onClick={switchToClassic}
+				>
 					<IconBoard size={20} />
-					<span className="tt-tooltip">Classic Backlog (board, milestones, docs)</span>
-				</Link>
+					<span className="tt-tooltip">Switch to classic Backlog.md</span>
+				</button>
 				<button type="button" className="tt-rail-btn" aria-label="Settings" onClick={() => setSettingsOpen(true)}>
 					<IconSettings size={20} />
 					<span className="tt-tooltip">Settings</span>
 				</button>
 			</nav>
-			{showSidebar && <Sidebar current={currentView} onNavigate={() => setDrawerOpen(false)} />}
+			{showSidebar && (
+				<Sidebar
+					current={currentView}
+					onNavigate={() => setDrawerOpen(false)}
+					footer={
+						<>
+							<button type="button" className="tt-foot-btn" onClick={toggleTheme}>
+								{theme === "dark" ? <IconSunny size={18} /> : <IconMoon size={18} />}
+								{theme === "dark" ? "Light" : "Dark"}
+							</button>
+							<button type="button" className="tt-foot-btn" onClick={switchToClassic}>
+								<IconBoard size={18} />
+								Classic
+							</button>
+							<button
+								type="button"
+								className="tt-foot-btn"
+								onClick={() => {
+									setDrawerOpen(false);
+									setSettingsOpen(true);
+								}}
+							>
+								<IconSettings size={18} />
+								Settings
+							</button>
+						</>
+					}
+				/>
+			)}
 			{showSidebar && !drawerOpen && (
 				<div className="tt-resize-slot">
 					<ResizeHandle
