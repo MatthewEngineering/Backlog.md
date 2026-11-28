@@ -193,3 +193,16 @@ export const IconSort = ({ size }: IconProps) => (
 		<path d="M7 4v16M3.5 16.5 7 20l3.5-3.5M17 20V4M13.5 7.5 17 4l3.5 3.5" />
 	</Svg>
 );
+export const IconMilestone = ({ size }: IconProps) => (
+	<Svg size={size}>
+		<path d="M5 21V4" />
+		<path d="M5 4h11l-2.5 4L16 12H5" />
+	</Svg>
+);
+export const IconGantt = ({ size }: IconProps) => (
+	<Svg size={size}>
+		<path d="M4 4v16h16" />
+		<rect x="7" y="7" width="7" height="3" rx="1" />
+		<rect x="10" y="13" width="8" height="3" rx="1" />
+	</Svg>
+);

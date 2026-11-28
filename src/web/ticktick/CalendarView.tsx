@@ -50,7 +50,7 @@ export default function CalendarView({ selectedId, onSelect, onToggleSidebar }: 
 	return (
 		<section className="tt-main" aria-label="Calendar">
 			<header className="tt-main-head">
-				<button type="button" className="tt-icon-btn tt-menu-toggle" aria-label="Open lists" onClick={onToggleSidebar}>
+				<button type="button" className="tt-icon-btn tt-menu-toggle" aria-label="Open sidebar" onClick={onToggleSidebar}>
 					<IconMenu />
 				</button>
 				<h1 className="tt-main-title">{title}</h1>

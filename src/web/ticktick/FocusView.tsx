@@ -106,7 +106,7 @@ export default function FocusView({ selected, onToggleSidebar }: FocusViewProps)
 	return (
 		<section className="tt-main" aria-label="Focus">
 			<header className="tt-main-head">
-				<button type="button" className="tt-icon-btn tt-menu-toggle" aria-label="Open lists" onClick={onToggleSidebar}>
+				<button type="button" className="tt-icon-btn tt-menu-toggle" aria-label="Open sidebar" onClick={onToggleSidebar}>
 					<IconMenu />
 				</button>
 				<h1 className="tt-main-title">{phase === "focus" ? "Pomodoro" : "Break"}</h1>

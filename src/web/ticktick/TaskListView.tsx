@@ -18,7 +18,7 @@ import { type NewTaskInput, useTick } from "./store";
 export type GroupMode = "date" | "priority" | "list" | "none";
 
 const GROUP_MODES: readonly GroupMode[] = ["date", "priority", "list", "none"];
-const GROUP_LABELS: Record<GroupMode, string> = { date: "Date", priority: "Priority", list: "List", none: "None" };
+const GROUP_LABELS: Record<GroupMode, string> = { date: "Date", priority: "Priority", list: "Milestone", none: "None" };
 
 function readPref<T extends string>(key: string, fallback: T, allowed: readonly T[]): T {
 	try {
@@ -221,7 +221,7 @@ export default function TaskListView({
 	return (
 		<section className="tt-main" aria-label={title}>
 			<header className="tt-main-head">
-				<button type="button" className="tt-icon-btn tt-menu-toggle" aria-label="Open lists" onClick={onToggleSidebar}>
+				<button type="button" className="tt-icon-btn tt-menu-toggle" aria-label="Open sidebar" onClick={onToggleSidebar}>
 					<IconMenu />
 				</button>
 				<h1 className="tt-main-title">
@@ -279,7 +279,7 @@ export default function TaskListView({
 				{quickAddAllowed && (
 					<QuickAdd
 						ref={quickAddRef}
-						placeholder={`+ Add task to "${title}", press Enter to save. Try: tomorrow !high #tag ~list`}
+						placeholder={`+ Add task to "${title}", press Enter to save. Try: tomorrow !high #tag ~milestone`}
 						defaults={defaults}
 						onCreated={(task) => onSelect(task)}
 					/>

@@ -9,6 +9,7 @@ import {
 	IconCalendar,
 	IconCheckSquare,
 	IconMatrix,
+	IconMilestone,
 	IconMoon,
 	IconSearch,
 	IconSettings,
@@ -16,6 +17,7 @@ import {
 	IconTimer,
 } from "./icons";
 import MatrixView from "./MatrixView";
+import MilestonesView, { type MilestoneLayout } from "./MilestonesView";
 import { milestonePath, type ViewSpec } from "./model";
 import Sidebar, { viewPath } from "./Sidebar";
 import { TickProvider, useTick } from "./store";
@@ -29,11 +31,15 @@ import TaskListView from "./TaskListView";
  * edit. Everything this fork adds lives here; the classic pages stay as upstream ships them.
  *
  * URL scheme: /app/<today|next7|inbox|all|completed>, /app/list/<milestone>,
+ * /app/milestones/<list|board|gantt>,
  * /app/tag/<label>, /app/search?q=, /app/matrix, /app/calendar, /app/focus; `?task=<id>` opens a
  * task in the detail pane.
  */
 
-type Screen = { mode: "tasks"; view: ViewSpec } | { mode: "matrix" } | { mode: "calendar" } | { mode: "focus" };
+type Screen =
+	| { mode: "tasks"; view: ViewSpec }
+	| { mode: "milestones"; layout: MilestoneLayout }
+	| { mode: "matrix" } | { mode: "calendar" } | { mode: "focus" };
 
 function parseScreen(pathname: string, search: string): Screen {
 	const parts = pathname.replace(/^\/app\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
@@ -41,6 +47,8 @@ function parseScreen(pathname: string, search: string): Screen {
 	switch (head) {
 		case "matrix":
 			return { mode: "matrix" };
+		case "milestones":
+			return { mode: "milestones", layout: arg === "board" || arg === "gantt" ? arg : "list" };
 		case "calendar":
 			return { mode: "calendar" };
 		case "focus":
@@ -170,6 +178,12 @@ function TickShell() {
 
 	const railItems = [
 		{ to: lastTaskPath.current, label: "Tasks", icon: <IconCheckSquare size={20} />, active: screen.mode === "tasks" && currentView?.kind !== "search" },
+		{
+			to: "/app/milestones/list",
+			label: "Milestones",
+			icon: <IconMilestone size={20} />,
+			active: screen.mode === "milestones",
+		},
 		{ to: "/app/calendar", label: "Calendar", icon: <IconCalendar size={20} />, active: screen.mode === "calendar" },
 		{ to: "/app/matrix", label: "Eisenhower Matrix", icon: <IconMatrix size={20} />, active: screen.mode === "matrix" },
 		{ to: "/app/focus", label: "Pomodoro", icon: <IconTimer size={20} />, active: screen.mode === "focus" },
@@ -177,7 +191,8 @@ function TickShell() {
 	];
 
 	let main: React.ReactNode;
-	if (screen.mode === "matrix") main = <MatrixView selectedId={selectedId} onSelect={onSelect} onToggleSidebar={toggleSidebar} />;
+	if (screen.mode === "milestones") main = <MilestonesView layout={screen.layout} onToggleSidebar={toggleSidebar} />;
+	else if (screen.mode === "matrix") main = <MatrixView selectedId={selectedId} onSelect={onSelect} onToggleSidebar={toggleSidebar} />;
 	else if (screen.mode === "calendar")
 		main = <CalendarView selectedId={selectedId} onSelect={onSelect} onToggleSidebar={toggleSidebar} />;
 	else if (screen.mode === "focus") main = <FocusView selected={selected} onToggleSidebar={toggleSidebar} />;
@@ -293,7 +308,7 @@ function AppSettings({ onClose }: { onClose: () => void }) {
 						<label>Projects</label>
 						<p className="tt-modal-note">
 							{unconvertedProjects.join(", ")} {unconvertedProjects.length === 1 ? "is a project" : "are projects"} without a
-							folder. Making folders turns each into a top-level list, moves that area's lists inside it, and takes the
+							folder. Making folders turns each into a top-level milestone, moves that area's milestones inside it, and takes the
 							project off the tasks.
 						</p>
 						<button

@@ -239,7 +239,7 @@ function TaskDetailBody({ task: base, onClose }: { task: Task; onClose: () => vo
 
 				<div className="tt-detail-meta">
 					<div className="tt-field-row">
-						<span className="tt-field-label">List</span>
+						<span className="tt-field-label">Milestone</span>
 						<select
 							className="tt-select"
 							value={task.milestone ?? ""}

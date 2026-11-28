@@ -45,7 +45,7 @@ export default function MatrixView({ selectedId, onSelect, onToggleSidebar }: Ma
 	return (
 		<section className="tt-main" aria-label="Eisenhower Matrix">
 			<header className="tt-main-head">
-				<button type="button" className="tt-icon-btn tt-menu-toggle" aria-label="Open lists" onClick={onToggleSidebar}>
+				<button type="button" className="tt-icon-btn tt-menu-toggle" aria-label="Open sidebar" onClick={onToggleSidebar}>
 					<IconMenu />
 				</button>
 				<h1 className="tt-main-title">Eisenhower Matrix</h1>

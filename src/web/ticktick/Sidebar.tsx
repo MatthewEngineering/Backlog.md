@@ -7,6 +7,7 @@ import {
 	IconCaret,
 	IconDone,
 	IconFolder,
+	IconGantt,
 	IconInbox,
 	IconList,
 	IconMore,
@@ -51,7 +52,7 @@ interface SidebarProps {
 	onNavigate?: () => void;
 }
 
-type ListDialog =
+export type ListDialog =
 	| { mode: "create"; parent?: string }
 	| { mode: "edit"; milestone: Milestone };
 
@@ -212,7 +213,7 @@ export default function Sidebar({ current, onNavigate }: SidebarProps) {
 	};
 
 	return (
-		<nav className="tt-sidebar" aria-label="Lists">
+		<nav className="tt-sidebar" aria-label="Milestones">
 			<div className="tt-sidebar-scroll">
 				{smart.map(({ view, label, icon, onDrop }) => (
 					<Link
@@ -233,12 +234,24 @@ export default function Sidebar({ current, onNavigate }: SidebarProps) {
 						<span className={`tt-caret ${collapsed.has("section:lists") ? "" : "is-open"}`}>
 							<IconCaret />
 						</span>
-						<span className="tt-section-title">Lists</span>
+						<span className="tt-section-title">Milestones</span>
+						<Link
+							to="/app/milestones/gantt"
+							className="tt-icon-btn"
+							aria-label="All milestones: list, board, Gantt"
+							title="All milestones: list, board, Gantt"
+							onClick={(event) => {
+								event.stopPropagation();
+								onNavigate?.();
+							}}
+						>
+							<IconGantt size={14} />
+						</Link>
 						<span
 							className="tt-icon-btn"
 							role="button"
-							aria-label="Add list"
-							title="Add list"
+							aria-label="Add milestone"
+							title="Add milestone"
 							onClick={(event) => {
 								event.stopPropagation();
 								setDialog({ mode: "create" });
@@ -253,7 +266,7 @@ export default function Sidebar({ current, onNavigate }: SidebarProps) {
 								<div className="tt-convert">
 									<p>
 										Make your {unconvertedProjects.length === 1 ? "project" : `${unconvertedProjects.length} projects`} (
-										{unconvertedProjects.join(", ")}) into folders? Each becomes a top-level folder, the lists in that
+										{unconvertedProjects.join(", ")}) into folders? Each becomes a top-level milestone, the milestones in that
 										area move inside it, and tasks drop their own project field.
 									</p>
 									<button
@@ -273,7 +286,7 @@ export default function Sidebar({ current, onNavigate }: SidebarProps) {
 							{tree.map(renderList)}
 							{milestones.length === 0 && (
 								<div className="tt-empty-group" style={{ paddingLeft: 12 }}>
-									Lists are milestones. Add one with +; drag a list onto another to put it inside, and a list with lists inside is a folder.
+									Add a milestone with +. Drag one milestone onto another to put it inside.
 								</div>
 							)}
 						</>
@@ -353,7 +366,7 @@ function ListMenu({
 	return (
 		<Popover onClose={onClose} style={{ left: 40, top: 32 }}>
 			<button type="button" className="tt-menu-item" onClick={run(onAddChild)}>
-				Add list inside
+				Add milestone inside
 			</button>
 			<button type="button" className="tt-menu-item" onClick={run(onEdit)}>
 				Edit
@@ -368,18 +381,18 @@ function ListMenu({
 				type="button"
 				className="tt-menu-item is-danger"
 				onClick={run(() => {
-					if (window.confirm(`Archive the list "${milestone.title}"? Its tasks stay; they just leave the list.`)) {
+					if (window.confirm(`Archive the milestone "${milestone.title}"? Its tasks stay; they just leave the milestone.`)) {
 						void archiveList(milestone);
 					}
 				})}
 			>
-				Archive list
+				Archive milestone
 			</button>
 		</Popover>
 	);
 }
 
-function ListDialogView({ dialog, onClose }: { dialog: ListDialog; onClose: () => void }) {
+export function ListDialogView({ dialog, onClose }: { dialog: ListDialog; onClose: () => void }) {
 	const { milestones, createList, renameList, setListParent } = useTick();
 	const editing = dialog.mode === "edit" ? dialog.milestone : null;
 	const [title, setTitle] = useState(editing?.title ?? "");
@@ -439,7 +452,7 @@ function ListDialogView({ dialog, onClose }: { dialog: ListDialog; onClose: () =
 					void submit();
 				}}
 			>
-				<h2>{editing ? "Edit List" : "Add List"}</h2>
+				<h2>{editing ? "Edit Milestone" : "Add Milestone"}</h2>
 				<label htmlFor="tt-list-name">Name</label>
 				<input
 					id="tt-list-name"
@@ -447,9 +460,9 @@ function ListDialogView({ dialog, onClose }: { dialog: ListDialog; onClose: () =
 					autoFocus
 					value={title}
 					onChange={(event) => setTitle(event.target.value)}
-					placeholder="List name"
+					placeholder="Milestone name"
 				/>
-				<label htmlFor="tt-list-parent">Inside list</label>
+				<label htmlFor="tt-list-parent">Inside milestone</label>
 				<select id="tt-list-parent" className="tt-input" value={parent} onChange={(event) => setParent(event.target.value)}>
 					<option value="">None (top level)</option>
 					{options.map((option) => (
@@ -458,7 +471,7 @@ function ListDialogView({ dialog, onClose }: { dialog: ListDialog; onClose: () =
 						</option>
 					))}
 				</select>
-				<label htmlFor="tt-list-due">Due date (milestone)</label>
+				<label htmlFor="tt-list-due">Due date</label>
 				<input
 					id="tt-list-due"
 					type="date"

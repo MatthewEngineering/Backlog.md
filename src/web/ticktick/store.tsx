@@ -239,7 +239,7 @@ export function TickProvider({
 			try {
 				await apiClient.archiveMilestone(milestone.id);
 				await onRefreshMilestones();
-				notify(`Archived list "${milestone.title}"`);
+				notify(`Archived milestone "${milestone.title}"`);
 			} catch (error) {
 				fail(error);
 			}
