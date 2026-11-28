@@ -274,3 +274,90 @@ export function PriorityPicker({
 		</Popover>
 	);
 }
+
+/**
+ * A draggable vertical divider between two panes. `edge` says which side of the pane being sized
+ * the divider sits on: "right" grows the pane as the pointer moves right (a left sidebar), "left"
+ * grows it as the pointer moves left (a right-hand panel). Dragging well past `min` calls
+ * `onCollapse` when given. Arrow keys nudge it; a double click puts it back to `reset`.
+ */
+export function ResizeHandle({
+	value,
+	onChange,
+	min,
+	max,
+	reset,
+	edge,
+	label,
+	onCollapse,
+	className = "",
+}: {
+	value: number;
+	onChange: (width: number) => void;
+	min: number;
+	max: number;
+	reset: number;
+	edge: "left" | "right";
+	label: string;
+	onCollapse?: () => void;
+	className?: string;
+}) {
+	const clamp = (width: number) => Math.min(max, Math.max(min, Math.round(width)));
+	return (
+		// biome-ignore lint/a11y/useSemanticElements: a focusable separator is the ARIA pattern for a splitter
+		<div
+			className={`tt-resize ${className}`}
+			role="separator"
+			aria-orientation="vertical"
+			aria-label={label}
+			aria-valuenow={value}
+			aria-valuemin={min}
+			aria-valuemax={max}
+			tabIndex={0}
+			title={`Drag to resize${onCollapse ? ", or drag all the way to hide" : ""}. Double-click to reset.`}
+			onDoubleClick={() => onChange(reset)}
+			onKeyDown={(event) => {
+				const step = event.shiftKey ? 64 : 16;
+				const grow = edge === "right" ? "ArrowRight" : "ArrowLeft";
+				const shrink = edge === "right" ? "ArrowLeft" : "ArrowRight";
+				if (event.key === grow) onChange(clamp(value + step));
+				else if (event.key === shrink) onChange(clamp(value - step));
+				else return;
+				event.preventDefault();
+			}}
+			onPointerDown={(event) => {
+				if (event.button !== 0) return;
+				event.preventDefault();
+				const handle = event.currentTarget;
+				handle.setPointerCapture(event.pointerId);
+				handle.classList.add("is-dragging");
+				document.body.style.cursor = "col-resize";
+				const startX = event.clientX;
+				const startWidth = value;
+				let collapsed = false;
+				const move = (moveEvent: PointerEvent) => {
+					const delta = (moveEvent.clientX - startX) * (edge === "right" ? 1 : -1);
+					const raw = startWidth + delta;
+					if (onCollapse && raw < min - 80) {
+						if (!collapsed) {
+							collapsed = true;
+							onCollapse();
+						}
+						return;
+					}
+					onChange(clamp(raw));
+				};
+				const end = () => {
+					handle.classList.remove("is-dragging");
+					document.body.style.cursor = "";
+					handle.removeEventListener("pointermove", move);
+					handle.removeEventListener("pointerup", end);
+					handle.removeEventListener("pointercancel", end);
+				};
+				handle.addEventListener("pointermove", move);
+				handle.addEventListener("pointerup", end);
+				handle.addEventListener("pointercancel", end);
+			}}
+		/>
+	);
+}

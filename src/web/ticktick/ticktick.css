@@ -148,7 +148,7 @@ html.dark .tt-root {
 /* ---------------------------------------------------------------- sidebar */
 
 .tt-sidebar {
-	width: 260px;
+	width: var(--tt-sidebar-w, 260px);
 	flex: none;
 	background: var(--tt-side);
 	border-right: 1px solid var(--tt-border);
@@ -341,6 +341,46 @@ html.dark .tt-root {
 
 .tt-menu-toggle {
 	display: none;
+}
+
+.tt-root.is-tasks .tt-menu-toggle {
+	display: grid;
+}
+
+/* Draggable dividers between panes. The slot takes no room; the handle straddles the border. */
+.tt-resize-slot {
+	position: relative;
+	flex: none;
+	width: 0;
+	z-index: 20;
+}
+
+.tt-resize {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: -4px;
+	width: 8px;
+	cursor: col-resize;
+	touch-action: none;
+	outline: 0;
+}
+
+.tt-resize::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 3px;
+	width: 2px;
+	background: transparent;
+	transition: background 0.15s;
+}
+
+.tt-resize:hover::after,
+.tt-resize:focus-visible::after,
+.tt-resize.is-dragging::after {
+	background: var(--tt-accent);
 }
 
 .tt-quickadd {
@@ -591,7 +631,7 @@ html.dark .tt-root {
 /* ---------------------------------------------------------------- detail pane */
 
 .tt-detail {
-	width: 400px;
+	width: var(--tt-detail-w, 400px);
 	flex: none;
 	border-left: 1px solid var(--tt-border);
 	display: flex;
@@ -1181,6 +1221,10 @@ html.dark .tt-root {
 }
 
 @media (max-width: 1100px) {
+	.tt-resize-slot.is-detail {
+		display: none;
+	}
+
 	.tt-detail.is-empty {
 		display: none !important;
 	}
@@ -1199,6 +1243,10 @@ html.dark .tt-root {
 @media (max-width: 767px) {
 	.tt-root {
 		flex-direction: column;
+	}
+
+	.tt-resize-slot {
+		display: none;
 	}
 
 	.tt-rail {
@@ -1625,7 +1673,7 @@ html.dark .tt-root {
 }
 
 .tt-gantt {
-	--tt-gantt-left: 440px;
+	--tt-gantt-left: var(--tt-gantt-left-user, 440px);
 	flex: 1;
 	overflow: auto;
 	margin: 0 24px 24px;
@@ -1898,6 +1946,17 @@ html.dark .tt-root {
 	.tt-ms-table td:nth-child(4),
 	.tt-ms-table th:nth-child(6),
 	.tt-ms-table td:nth-child(6) {
+		display: none;
+	}
+}
+
+.tt-gantt-head .tt-gantt-left .tt-resize {
+	left: auto;
+	right: -4px;
+}
+
+@media (max-width: 767px) {
+	.tt-gantt-left .tt-resize {
 		display: none;
 	}
 }

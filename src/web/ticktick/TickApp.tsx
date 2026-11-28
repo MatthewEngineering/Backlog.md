@@ -23,6 +23,38 @@ import Sidebar, { viewPath } from "./Sidebar";
 import { TickProvider, useTick } from "./store";
 import TaskDetail from "./TaskDetail";
 import TaskListView from "./TaskListView";
+import { ResizeHandle } from "./parts";
+
+interface PaneLayout {
+	sidebar: number;
+	detail: number;
+	sidebarCollapsed: boolean;
+}
+
+const DEFAULT_LAYOUT: PaneLayout = { sidebar: 260, detail: 400, sidebarCollapsed: false };
+
+/** Pane widths and the folded sidebar, remembered per browser. */
+function usePaneLayout(): [PaneLayout, (patch: Partial<PaneLayout>) => void] {
+	const [layout, setLayout] = useState<PaneLayout>(() => {
+		try {
+			return { ...DEFAULT_LAYOUT, ...(JSON.parse(localStorage.getItem("tt-layout") ?? "{}") as Partial<PaneLayout>) };
+		} catch {
+			return DEFAULT_LAYOUT;
+		}
+	});
+	const update = useCallback((patch: Partial<PaneLayout>) => {
+		setLayout((current) => {
+			const next = { ...current, ...patch };
+			try {
+				localStorage.setItem("tt-layout", JSON.stringify(next));
+			} catch {
+				// Remembering the layout is a convenience.
+			}
+			return next;
+		});
+	}, []);
+	return [layout, update];
+}
 
 /**
  * The TickTick-style task app, served at /app. Smart lists (Today, Next 7 Days, Inbox), nested
@@ -123,6 +155,7 @@ function TickShell() {
 	const selectedId = selected?.id ?? null;
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [layout, setLayout] = usePaneLayout();
 	const quickAddRef = useRef<HTMLInputElement | null>(null);
 	const searchRef = useRef<HTMLInputElement | null>(null);
 	// The task screen to come back to from the rail's Tasks button.
@@ -173,7 +206,11 @@ function TickShell() {
 		return () => window.removeEventListener("keydown", onKey);
 	}, [navigate, onClose, screen, selectedId]);
 
-	const toggleSidebar = () => setDrawerOpen((open) => !open);
+	// Narrow screens slide the sidebar in as a drawer; wider ones fold it away.
+	const toggleSidebar = () => {
+		if (window.matchMedia("(max-width: 767px)").matches) setDrawerOpen((open) => !open);
+		else setLayout({ sidebarCollapsed: !layout.sidebarCollapsed });
+	};
 	const currentView = screen.mode === "tasks" ? screen.view : null;
 
 	const railItems = [
@@ -211,10 +248,14 @@ function TickShell() {
 			/>
 		);
 
-	const showSidebar = screen.mode === "tasks" || drawerOpen;
+	const showSidebar = (screen.mode === "tasks" && !layout.sidebarCollapsed) || drawerOpen;
+	const showDetail = Boolean(selected) || screen.mode === "tasks";
 
 	return (
-		<div className={`tt-root ${drawerOpen ? "is-drawer-open" : ""}`}>
+		<div
+			className={`tt-root ${drawerOpen ? "is-drawer-open" : ""} ${screen.mode === "tasks" ? "is-tasks" : ""}`}
+			style={{ "--tt-sidebar-w": `${layout.sidebar}px`, "--tt-detail-w": `${layout.detail}px` } as React.CSSProperties}
+		>
 			<nav className="tt-rail" aria-label="Apps">
 				<div className="tt-avatar" title={projectName}>
 					{(projectName || "B")[0]?.toUpperCase()}
@@ -240,11 +281,36 @@ function TickShell() {
 				</button>
 			</nav>
 			{showSidebar && <Sidebar current={currentView} onNavigate={() => setDrawerOpen(false)} />}
+			{showSidebar && !drawerOpen && (
+				<div className="tt-resize-slot">
+					<ResizeHandle
+						value={layout.sidebar}
+						onChange={(sidebar) => setLayout({ sidebar })}
+						min={180}
+						max={480}
+						reset={DEFAULT_LAYOUT.sidebar}
+						edge="right"
+						label="Resize sidebar"
+						onCollapse={() => setLayout({ sidebarCollapsed: true })}
+					/>
+				</div>
+			)}
 			<div className="tt-backdrop" onClick={() => setDrawerOpen(false)} />
 			{main}
-			{(selected || screen.mode === "tasks") && (
-				<TaskDetail task={selected} onClose={onClose} />
+			{showDetail && (
+				<div className="tt-resize-slot is-detail">
+					<ResizeHandle
+						value={layout.detail}
+						onChange={(detail) => setLayout({ detail })}
+						min={300}
+						max={900}
+						reset={DEFAULT_LAYOUT.detail}
+						edge="left"
+						label="Resize task detail"
+					/>
+				</div>
 			)}
+			{showDetail && <TaskDetail task={selected} onClose={onClose} />}
 			<nav className="tt-tabbar" aria-label="Apps">
 				{railItems.map((item) => (
 					<Link key={item.label} to={item.to} className={item.active ? "is-active" : ""} aria-label={item.label}>

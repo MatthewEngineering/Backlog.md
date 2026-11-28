@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-11-26T09:02:17Z'
-updated_date: '2026-11-28T05:52:45Z'
+updated_date: '2026-11-28T06:05:30Z'
 labels:
   - web
 dependencies: []
@@ -54,4 +54,6 @@ Full suite (bun test): 3636 pass / 242 fail under load. Every failing file rerun
 Follow-up (2026-11-28): classic pages are back to upstream (the Interface select and the sidebar link were removed). The interface toggle now lives in the app's own Settings dialog (rail gear). Projects are dropped from the app: a list with lists inside is a folder, and POST /api/milestones/folders-from-projects (Core.convertProjectsToFolders, src/core/milestone-folders.ts) turns configured projects into top-level milestone folders in one commit. It nests each area's milestones (by Area:: line or majority task project), files project-only tasks into the folder, and clears task.project where the folder already says it. Config projects are left alone. Quick add: @List is an alias for ~List.
 
 Follow-up (2026-11-28): the app calls them milestones, not lists. New Milestones screen (rail flag icon, /app/milestones/<list|board|gantt>, MilestonesView.tsx; numbers in milestoneStats.ts with tests). List: tree table of tasks/points done, open, overdue. Board: columns by progress, parent (drag re-parents), or due. Gantt: bars from first task created/due to last deadline, with diamonds at milestone due dates. Columns show rolled-up Pts, Open, Period and Late. A period picker (week, 2 weeks, month, next month, quarter, custom) drives a summary: due in period, required by period end (overdue included), capacity left from points_per_month, and open. A per-week/month points-due row is drawn against capacity. A task's deadline is its due date, else the nearest dated milestone above it.
+
+Follow-up (2026-11-28): resizable panes. ResizeHandle in parts.tsx is a pointer-drag, keyboard and double-click-reset separator. It sizes the sidebar (180-480; drag past it to hide), the task detail (300-900) and the Gantt's milestone columns (300-900). Widths live in localStorage (tt-layout, tt-milestones). The header button by the title folds the sidebar on desktop and opens the drawer on phones.
 <!-- SECTION:NOTES:END -->

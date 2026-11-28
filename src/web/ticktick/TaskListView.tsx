@@ -221,7 +221,13 @@ export default function TaskListView({
 	return (
 		<section className="tt-main" aria-label={title}>
 			<header className="tt-main-head">
-				<button type="button" className="tt-icon-btn tt-menu-toggle" aria-label="Open sidebar" onClick={onToggleSidebar}>
+				<button
+					type="button"
+					className="tt-icon-btn tt-menu-toggle"
+					aria-label="Show or hide the sidebar"
+					title="Show or hide the sidebar"
+					onClick={onToggleSidebar}
+				>
 					<IconMenu />
 				</button>
 				<h1 className="tt-main-title">

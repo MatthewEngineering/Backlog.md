@@ -14,6 +14,7 @@ import {
 	summarize,
 } from "./milestoneStats";
 import { relativeDayLabel } from "./model";
+import { ResizeHandle } from "./parts";
 import { type ListDialog, ListDialogView } from "./Sidebar";
 import { useTick } from "./store";
 
@@ -37,6 +38,7 @@ interface Prefs {
 	preset: PeriodPreset;
 	custom: Period | null;
 	collapsed: string[];
+	ganttLeft: number;
 }
 
 const DEFAULT_PREFS: Prefs = {
@@ -47,6 +49,7 @@ const DEFAULT_PREFS: Prefs = {
 	preset: "month",
 	custom: null,
 	collapsed: [],
+	ganttLeft: 440,
 };
 
 function usePrefs(): [Prefs, (patch: Partial<Prefs>) => void] {
@@ -272,6 +275,8 @@ export default function MilestonesView({
 					period={period}
 					zoom={prefs.zoom}
 					pointsPerMonth={config?.pointsPerMonth}
+					leftWidth={prefs.ganttLeft}
+					onLeftWidth={(ganttLeft) => setPrefs({ ganttLeft })}
 					isFolded={isFolded}
 					onFold={toggleFold}
 				/>
@@ -523,7 +528,11 @@ function MilestoneGantt({
 	pointsPerMonth,
 	isFolded,
 	onFold,
+	leftWidth,
+	onLeftWidth,
 }: {
+	leftWidth: number;
+	onLeftWidth: (width: number) => void;
 	rows: MilestoneRow[];
 	shown: MilestoneRow[];
 	period: Period;
@@ -625,7 +634,7 @@ function MilestoneGantt({
 				<Stat label="Open in all milestones shown" value={`${pts(summary.openPoints)} pts`} />
 				{summary.unestimated > 0 && <Stat label="Open tasks without points" value={String(summary.unestimated)} tone="muted" />}
 			</div>
-			<div className="tt-gantt" ref={scrollRef}>
+			<div className="tt-gantt" ref={scrollRef} style={{ "--tt-gantt-left-user": `${leftWidth}px` } as React.CSSProperties}>
 				<div className="tt-gantt-inner" style={{ width: `calc(var(--tt-gantt-left) + ${width}px)` }}>
 					<div className="tt-gantt-row tt-gantt-head">
 						<div className="tt-gantt-left">
@@ -642,6 +651,15 @@ function MilestoneGantt({
 							<span className="is-num" title="Open story points past due">
 								Late
 							</span>
+							<ResizeHandle
+								value={leftWidth}
+								onChange={onLeftWidth}
+								min={300}
+								max={900}
+								reset={DEFAULT_PREFS.ganttLeft}
+								edge="right"
+								label="Resize milestone columns"
+							/>
 						</div>
 						<div className="tt-gantt-track" style={{ width }}>
 							{months.map((month) => (
